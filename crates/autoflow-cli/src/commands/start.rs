@@ -178,13 +178,39 @@ IMPORTANT:
             let mut last_error = String::new();
 
             loop {
-                let context = if retry_count == 0 {
-                    format!("{}\n\nIMPORTANT: Use the Write tool to save the SPRINTS.yml file directly to `.autoflow/SPRINTS.yml`. This avoids truncation issues with large files.", sprints_context)
+                let (agent_name, context) = if retry_count == 0 {
+                    // First attempt: Full generation
+                    ("make-sprints", format!("{}\n\nIMPORTANT: Use the Write tool to save the SPRINTS.yml file directly to `.autoflow/SPRINTS.yml`. This avoids truncation issues with large files.", sprints_context))
+                } else if retry_count == 1 && std::path::Path::new(sprints_path).exists() {
+                    // First retry: Try focused fix if file exists
+                    println!("  {} Attempting focused fix...", "→".yellow());
+                    ("make-sprints", format!(
+                        r#"VALIDATION ERROR FOUND:
+{}
+
+TASK: Fix the SPRINTS.yml file at `.autoflow/SPRINTS.yml`
+
+1. Read the existing file using the Read tool
+2. Identify and fix the validation errors (missing fields, wrong types, invalid enum values, etc.)
+3. Use the Write tool to save the corrected SPRINTS.yml
+
+Common fixes:
+- Add missing 'type' field to tasks (IMPLEMENTATION, DOCUMENTATION, TEST, INFRASTRUCTURE, REFACTOR, BUGFIX)
+- Add missing 'workflow_type' field to sprints (IMPLEMENTATION, DOCUMENTATION, TEST, INFRASTRUCTURE, REFACTOR)
+- Fix enum values to match schema (SCREAMING_SNAKE_CASE)
+- Add missing required fields (last_updated, etc.)
+- Fix YAML syntax errors (quotes, indentation)
+
+Only fix what's broken - preserve all existing content."#,
+                        last_error
+                    ))
                 } else {
-                    format!("{}\n\nPREVIOUS ATTEMPT FAILED:\n{}\n\nPlease fix the issues and use the Write tool to save to `.autoflow/SPRINTS.yml` directly.", sprints_context, last_error)
+                    // Final retry: Full regeneration from scratch
+                    println!("  {} Full regeneration...", "↻".yellow());
+                    ("make-sprints", format!("{}\n\nPREVIOUS ATTEMPT FAILED:\n{}\n\nGenerate a complete, valid SPRINTS.yml from scratch. Use the Write tool to save to `.autoflow/SPRINTS.yml` directly.", sprints_context, last_error))
                 };
 
-                match autoflow_agents::execute_agent("make-sprints", &context, 20, None).await {
+                match autoflow_agents::execute_agent(agent_name, &context, 20, None).await {
                     Ok(result) if result.success => {
                         // Check if file was written directly
                         if std::path::Path::new(sprints_path).exists() {
