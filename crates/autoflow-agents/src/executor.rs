@@ -120,11 +120,29 @@ pub async fn execute_agent(
         );
     }
 
+    // Log the system prompt
+    if let Some(ref logger) = debug_logger {
+        let _ = logger.log_agent_step(
+            agent_name,
+            "Agent system prompt",
+            &format!("---\n{}\n---", agent_def.system_prompt)
+        );
+    }
+
     // Note: All logging is now handled by the debug_logger in .autoflow/.debug/
     // Sprint-specific logs are no longer created to avoid duplication
 
     // Build the full prompt combining system prompt and context
     let full_prompt = format!("{}\n\n# Context\n\n{}", agent_def.system_prompt, context);
+
+    // Log the FULL combined prompt that will be sent to Claude
+    if let Some(ref logger) = debug_logger {
+        let _ = logger.log_agent_step(
+            agent_name,
+            "Full prompt being sent to Claude",
+            &format!("===\n{}\n===", full_prompt)
+        );
+    }
 
     // Check if debug mode is enabled
     let debug_mode = std::env::var("AUTOFLOW_DEBUG").unwrap_or_default() == "1"
