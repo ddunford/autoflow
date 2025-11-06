@@ -87,7 +87,7 @@ Return ONLY valid YAML (no markdown code blocks).
     let next_id = sprints_data.sprints.len() as u32 + 1;
 
     // Try to execute the agent, fall back to template if it fails
-    let new_sprint = match execute_agent("make-sprints", &context, 10).await {
+    let new_sprint = match execute_agent("make-sprints", &context, 10, None).await {
         Ok(result) => {
             if result.success {
                 // Parse the agent output to extract sprint

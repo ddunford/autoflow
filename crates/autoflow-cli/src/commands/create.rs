@@ -138,23 +138,28 @@ Any specific requirements or constraints:
 {}
 
 Create the following files in .autoflow/docs/:
+
+CORE DOCUMENTATION (always):
 1. .autoflow/docs/BUILD_SPEC.md - Detailed technical specification
 2. .autoflow/docs/ARCHITECTURE.md - System architecture and design
-3. .autoflow/docs/API_SPEC.md - API endpoints and data models (if backend)
-4. .autoflow/docs/UI_SPEC.md - UI/UX specifications and wireframes (if frontend)
+3. .autoflow/docs/TESTING_STRATEGY.md - Testing approach and requirements
+4. .autoflow/docs/ERROR_HANDLING.md - Error management patterns
+5. .autoflow/docs/DEPLOYMENT.md - Deployment and operations guide
 
-Use the IDEA content to infer:
-- Tech stack (or recommend best choices)
-- Architecture patterns
-- Database schema
-- API design
-- Component structure
-- Testing strategy
+CONDITIONAL DOCUMENTATION (based on project type):
+6. .autoflow/docs/API_SPEC.md - API endpoints and data models (if backend/API)
+7. .autoflow/docs/UI_SPEC.md - UI/UX specifications (if frontend/UI)
+8. .autoflow/docs/DATA_MODEL.md - Database schema and relationships (if database)
+9. .autoflow/docs/STATE_MANAGEMENT.md - Frontend state patterns (if frontend framework)
+10. .autoflow/docs/SECURITY.md - Security implementation (if backend/API)
+
+Detect project type from the IDEA and generate appropriate documentation.
+Always include references and links between documents.
 
 IMPORTANT: All documentation files MUST be created in .autoflow/docs/ directory, NOT in the project root.
 "#, idea_content);
 
-    match execute_agent("make-docs", &docs_context, 15).await {
+    match execute_agent("make-docs", &docs_context, 15, None).await {
         Ok(result) => {
             if result.success {
                 println!("  {} Documentation generated", "✓".green());
@@ -208,6 +213,12 @@ To be determined during implementation.
     let architecture = fs::read_to_string(".autoflow/docs/ARCHITECTURE.md").unwrap_or_default();
     let api_spec = fs::read_to_string(".autoflow/docs/API_SPEC.md").unwrap_or_default();
     let ui_spec = fs::read_to_string(".autoflow/docs/UI_SPEC.md").unwrap_or_default();
+    let data_model = fs::read_to_string(".autoflow/docs/DATA_MODEL.md").unwrap_or_default();
+    let testing_strategy = fs::read_to_string(".autoflow/docs/TESTING_STRATEGY.md").unwrap_or_default();
+    let error_handling = fs::read_to_string(".autoflow/docs/ERROR_HANDLING.md").unwrap_or_default();
+    let state_management = fs::read_to_string(".autoflow/docs/STATE_MANAGEMENT.md").unwrap_or_default();
+    let security = fs::read_to_string(".autoflow/docs/SECURITY.md").unwrap_or_default();
+    let deployment = fs::read_to_string(".autoflow/docs/DEPLOYMENT.md").unwrap_or_default();
     let integration_guide = fs::read_to_string(".autoflow/INTEGRATION_GUIDE.md").unwrap_or_default();
 
     let sprints_context = format!(r#"Generate a complete sprint plan from the following project documentation:
@@ -224,6 +235,24 @@ To be determined during implementation.
 # UI_SPEC.md
 {}
 
+# DATA_MODEL.md
+{}
+
+# TESTING_STRATEGY.md
+{}
+
+# ERROR_HANDLING.md
+{}
+
+# STATE_MANAGEMENT.md
+{}
+
+# SECURITY.md
+{}
+
+# DEPLOYMENT.md
+{}
+
 # INTEGRATION_GUIDE.md
 {}
 
@@ -232,12 +261,13 @@ IMPORTANT:
 2. Break down the features into logical sprints
 3. Each sprint task should LINK to the documentation section it implements
 4. Follow TDD workflow: Tests → Implementation → Review
-5. Output ONLY raw YAML - no markdown fences, no explanations
+5. Reference specific sections from the docs (e.g., "See DATA_MODEL.md#UserSchema")
+6. Output ONLY raw YAML - no markdown fences, no explanations
 
 The agent definition already contains the full YAML format. Just output the actual YAML content.
-"#, build_spec, architecture, api_spec, ui_spec, integration_guide);
+"#, build_spec, architecture, api_spec, ui_spec, data_model, testing_strategy, error_handling, state_management, security, deployment, integration_guide);
 
-    match execute_agent("make-sprints", &sprints_context, 20).await {
+    match execute_agent("make-sprints", &sprints_context, 20, None).await {
         Ok(result) => {
             if result.success {
                 println!("  {} Sprint plan generated", "✓".green());

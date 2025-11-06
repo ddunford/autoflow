@@ -4,7 +4,7 @@ set -e
 # AutoFlow Installation Script
 # This script installs AutoFlow and all required components
 
-VERSION="0.1.0"
+VERSION="0.1.3"
 INSTALL_DIR="$HOME/.autoflow"
 BIN_DIR="$INSTALL_DIR/bin"
 AGENTS_DIR="$HOME/.claude/agents"

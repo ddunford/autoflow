@@ -60,6 +60,73 @@ UI/UX specifications:
 - State management approach
 - Component hierarchy
 
+### 5. DATA_MODEL.md (if database/persistence)
+Complete database specifications:
+- Entity-Relationship diagram (ASCII/Mermaid)
+- Complete schema with all tables/collections
+- Primary keys, foreign keys, indexes
+- Constraints and validation rules
+- Sample data for development
+- Migration strategy
+- Common queries and their optimizations
+- Data retention policies
+
+### 6. TESTING_STRATEGY.md (always)
+Comprehensive testing approach:
+- Testing pyramid breakdown (unit 70%, integration 20%, e2e 10%)
+- Coverage requirements (minimum 80% for critical paths)
+- Test naming conventions
+- What to unit test (business logic, utilities, components)
+- What to integration test (API endpoints, database operations)
+- What to e2e test (critical user flows)
+- Mock/stub patterns and when to use them
+- Test data setup and teardown
+- CI/CD integration requirements
+
+### 7. ERROR_HANDLING.md (always)
+Consistent error management:
+- Error codes and categories
+- HTTP status code mapping
+- Error response format (JSON schema)
+- Logging strategy (what, where, how)
+- Retry strategies and backoff
+- User-facing vs system errors
+- Error monitoring and alerting
+- Recovery procedures
+
+### 8. STATE_MANAGEMENT.md (if frontend framework)
+Frontend state strategy:
+- Global vs local state decisions
+- Data fetching and caching patterns
+- Cache invalidation strategies
+- Form state handling
+- URL state synchronization
+- Optimistic updates approach
+- State persistence (localStorage, sessionStorage)
+
+### 9. SECURITY.md (if backend/API)
+Security implementation:
+- Authentication flow (JWT, OAuth, sessions)
+- Authorization patterns (RBAC, ABAC)
+- Input validation and sanitization
+- XSS prevention strategies
+- CSRF protection
+- Rate limiting implementation
+- Secrets management
+- Security headers
+- OWASP Top 10 mitigations
+
+### 10. DEPLOYMENT.md (always)
+Deployment and operations:
+- Environment variables and configuration
+- Build and deployment pipeline
+- Infrastructure requirements
+- Rollback procedures
+- Health check endpoints
+- Monitoring and observability
+- Backup and disaster recovery
+- Scaling strategies
+
 ## Guidelines
 
 **Tech Stack Selection** (when not specified):
@@ -88,11 +155,24 @@ UI/UX specifications:
 
 ## Output Format
 
-Create separate files:
-- `BUILD_SPEC.md`
-- `ARCHITECTURE.md`
-- `API_SPEC.md` (if applicable)
-- `UI_SPEC.md` (if applicable)
+Create separate files in .autoflow/docs/ directory:
+- `BUILD_SPEC.md` (always)
+- `ARCHITECTURE.md` (always)
+- `API_SPEC.md` (if backend/API mentioned)
+- `UI_SPEC.md` (if frontend/UI mentioned)
+- `DATA_MODEL.md` (if database/persistence mentioned)
+- `TESTING_STRATEGY.md` (always)
+- `ERROR_HANDLING.md` (always)
+- `STATE_MANAGEMENT.md` (if frontend framework mentioned)
+- `SECURITY.md` (if backend/API mentioned)
+- `DEPLOYMENT.md` (always)
+
+**Conditional Generation Logic**:
+- Detect project type from IDEA.md content
+- Generate frontend docs if React, Vue, Angular, or "UI" mentioned
+- Generate backend docs if API, server, backend, or database mentioned
+- Generate database docs if PostgreSQL, MongoDB, MySQL, database, or schema mentioned
+- Always generate: BUILD_SPEC, ARCHITECTURE, TESTING_STRATEGY, ERROR_HANDLING, DEPLOYMENT
 
 Each file should be complete, professional, and ready for development.
 

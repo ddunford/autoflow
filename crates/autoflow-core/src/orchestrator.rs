@@ -157,7 +157,7 @@ impl Orchestrator {
         );
 
         // Execute agent
-        let result = execute_agent(agent_name, &context, max_turns)
+        let result = execute_agent(agent_name, &context, max_turns, Some(sprint.id))
             .await
             .map_err(|e| AutoFlowError::AgentExecutionFailed(agent_name.to_string(), e.to_string()))?;
 

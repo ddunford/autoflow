@@ -72,7 +72,7 @@ Provide a detailed analysis of:
 
     use autoflow_agents::execute_agent;
 
-    match execute_agent("debug-blocker", &context, 15).await {
+    match execute_agent("debug-blocker", &context, 15, None).await {
         Ok(result) => {
             if result.success {
                 println!("  {} Investigation complete", "✓".green());

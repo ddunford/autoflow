@@ -1,5 +1,5 @@
 ---
-model: claude-sonnet-4-5-20250929
+model: claude-opus-4-1-20250805
 tools: Read, Write, Edit, Grep, Glob, Bash
 description: Investigate bugs, identify root causes, and implement fixes
 ---

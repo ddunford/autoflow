@@ -160,10 +160,19 @@ my-project/
 ├── tests/                  # All tests
 ├── .autoflow/
 │   ├── docs/
-│   │   ├── BUILD_SPEC.md   # Technical specification
-│   │   ├── ARCHITECTURE.md # System architecture
-│   │   ├── API_SPEC.md     # API documentation
-│   │   └── UI_SPEC.md      # UI specifications
+│   │   ├── BUILD_SPEC.md         # Technical specification (always)
+│   │   ├── ARCHITECTURE.md       # System architecture (always)
+│   │   ├── TESTING_STRATEGY.md   # Testing approach & requirements (always)
+│   │   ├── ERROR_HANDLING.md     # Error management patterns (always)
+│   │   ├── DEPLOYMENT.md         # Deployment & operations (always)
+│   │   ├── API_SPEC.md           # API documentation (if backend)
+│   │   ├── UI_SPEC.md            # UI specifications (if frontend)
+│   │   ├── DATA_MODEL.md         # Database schema (if database)
+│   │   ├── STATE_MANAGEMENT.md   # Frontend state patterns (if frontend)
+│   │   └── SECURITY.md           # Security implementation (if backend)
+│   ├── sprints/
+│   │   └── sprint-XXX/
+│   │       └── logs/             # Agent execution logs (JSON & text)
 │   ├── SPRINTS.yml         # Sprint plan with task breakdown
 │   ├── CLAUDE.md           # Project context for agents
 │   └── INTEGRATION_GUIDE.md # Existing codebase integration guide

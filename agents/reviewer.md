@@ -1,5 +1,5 @@
 ---
-model: claude-sonnet-4-5-20250929
+model: claude-opus-4-1-20250805
 tools: Read, Grep, Glob
 description: Review code quality, security (OWASP), and best practices
 ---
