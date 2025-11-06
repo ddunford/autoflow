@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "AutoFlow SPRINTS.yml Schema",
-  "description": "Schema for validating SPRINTS.yml files",
+  "description": "Schema for validating SPRINTS.yml files - matches Rust struct definitions",
   "type": "object",
   "required": ["project", "sprints"],
   "properties": {
@@ -13,6 +13,14 @@
           "type": "string",
           "minLength": 1,
           "description": "Project name"
+        },
+        "version": {
+          "type": "string",
+          "description": "Project version (optional)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Project description (optional)"
         },
         "total_sprints": {
           "type": "integer",
@@ -27,7 +35,7 @@
         "last_updated": {
           "type": "string",
           "format": "date-time",
-          "description": "Last update timestamp"
+          "description": "Last update timestamp (ISO 8601)"
         }
       }
     },
@@ -36,7 +44,7 @@
       "description": "List of sprints",
       "items": {
         "type": "object",
-        "required": ["id", "goal", "status", "workflow_type", "total_effort", "max_effort", "last_updated", "deliverables", "tasks"],
+        "required": ["id", "goal", "status", "total_effort", "max_effort", "last_updated", "deliverables", "tasks"],
         "properties": {
           "id": {
             "type": "integer",
@@ -76,12 +84,11 @@
               "INFRASTRUCTURE",
               "REFACTOR"
             ],
-            "default": "IMPLEMENTATION",
-            "description": "Workflow type determining which flow to follow"
+            "description": "Workflow type determines which agent sequence to use (optional, defaults to IMPLEMENTATION)"
           },
           "duration": {
             "type": ["string", "null"],
-            "description": "Sprint duration estimate"
+            "description": "Sprint duration estimate (e.g., '8h', '2 days')"
           },
           "total_effort": {
             "type": "string",
@@ -91,22 +98,22 @@
           "max_effort": {
             "type": "string",
             "pattern": "^\\d+h$",
-            "description": "Maximum effort allowed (e.g., '15h')"
+            "description": "Maximum effort allowed (e.g., '12h')"
           },
           "started": {
             "type": ["string", "null"],
             "format": "date-time",
-            "description": "Sprint start timestamp"
+            "description": "Sprint start timestamp (ISO 8601)"
           },
           "last_updated": {
             "type": "string",
             "format": "date-time",
-            "description": "Last update timestamp"
+            "description": "Last update timestamp (ISO 8601)"
           },
           "completed_at": {
             "type": ["string", "null"],
             "format": "date-time",
-            "description": "Completion timestamp"
+            "description": "Completion timestamp (ISO 8601)"
           },
           "deliverables": {
             "type": "array",
@@ -115,24 +122,28 @@
               "type": "string",
               "minLength": 1
             },
-            "description": "List of deliverables"
+            "description": "List of concrete deliverables"
           },
           "tasks": {
             "type": "array",
             "minItems": 1,
             "items": {
               "type": "object",
-              "required": ["id", "title", "type", "effort", "priority", "feature", "docs", "business_rules", "testing"],
+              "required": ["title"],
               "properties": {
                 "id": {
                   "type": "string",
-                  "pattern": "^task-\\d{3}$",
-                  "description": "Task ID (e.g., 'task-001')"
+                  "pattern": "^task-\\d+$",
+                  "description": "Task ID (auto-generated if not provided)"
                 },
                 "title": {
                   "type": "string",
                   "minLength": 1,
                   "description": "Task title"
+                },
+                "description": {
+                  "type": ["string", "null"],
+                  "description": "Optional task description"
                 },
                 "type": {
                   "type": "string",
@@ -144,22 +155,25 @@
                     "REFACTOR",
                     "BUGFIX"
                   ],
-                  "description": "Task type"
+                  "description": "Task type (optional, defaults to IMPLEMENTATION)"
                 },
                 "effort": {
                   "type": "string",
                   "pattern": "^\\d+h$",
-                  "description": "Task effort estimate"
+                  "description": "Effort estimate (optional, defaults to '4h')"
                 },
                 "priority": {
                   "type": "string",
-                  "enum": ["HIGH", "MEDIUM", "LOW"],
-                  "description": "Task priority"
+                  "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
+                  "description": "Task priority (optional, defaults to MEDIUM)"
                 },
                 "feature": {
                   "type": "string",
-                  "minLength": 1,
-                  "description": "Feature name"
+                  "description": "Feature name this task belongs to (optional, defaults to 'core')"
+                },
+                "doc_reference": {
+                  "type": ["string", "null"],
+                  "description": "Documentation reference (e.g., 'BUILD_SPEC.md#Section')"
                 },
                 "docs": {
                   "type": "array",
@@ -170,20 +184,34 @@
                 },
                 "business_rules": {
                   "type": "array",
-                  "minItems": 1,
                   "items": {
                     "type": "string",
                     "minLength": 1
                   },
                   "description": "Business rules to implement"
                 },
+                "acceptance_criteria": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Acceptance criteria for this task"
+                },
+                "test_specification": {
+                  "type": ["string", "null"],
+                  "description": "How to test this task"
+                },
+                "integration_notes": {
+                  "type": ["string", "null"],
+                  "description": "Integration notes for existing codebases"
+                },
                 "testing": {
                   "type": "object",
-                  "required": ["unit_tests"],
+                  "description": "Testing requirements for this task",
                   "properties": {
                     "unit_tests": {
-                      "type": "object",
-                      "required": ["required", "reason"],
+                      "type": ["object", "null"],
                       "properties": {
                         "required": {
                           "type": "boolean"
@@ -192,7 +220,21 @@
                           "type": "string",
                           "minLength": 1
                         }
-                      }
+                      },
+                      "required": ["required", "reason"]
+                    },
+                    "integration_tests": {
+                      "type": ["object", "null"],
+                      "properties": {
+                        "required": {
+                          "type": "boolean"
+                        },
+                        "reason": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": ["required", "reason"]
                     },
                     "e2e_tests": {
                       "type": ["object", "null"],
@@ -201,59 +243,86 @@
                           "type": "boolean"
                         },
                         "reason": {
-                          "type": "string"
+                          "type": "string",
+                          "minLength": 1
                         }
-                      }
+                      },
+                      "required": ["required", "reason"]
                     }
                   }
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["PENDING", "IN_PROGRESS", "COMMITTED", "REVIEWED", "TESTED", "DONE"],
+                  "description": "Task status (optional, defaults to PENDING)"
+                },
+                "committed_at": {
+                  "type": ["string", "null"],
+                  "format": "date-time",
+                  "description": "Commit timestamp (ISO 8601)"
+                },
+                "reviewed_at": {
+                  "type": ["string", "null"],
+                  "format": "date-time",
+                  "description": "Review timestamp (ISO 8601)"
+                },
+                "tested_at": {
+                  "type": ["string", "null"],
+                  "format": "date-time",
+                  "description": "Test timestamp (ISO 8601)"
+                },
+                "done_at": {
+                  "type": ["string", "null"],
+                  "format": "date-time",
+                  "description": "Completion timestamp (ISO 8601)"
+                },
+                "git_commit": {
+                  "type": ["string", "null"],
+                  "description": "Git commit hash"
                 }
               }
-            },
-            "description": "List of tasks"
+            }
           },
           "dependencies": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Sprint dependencies"
+            "description": "List of dependent sprint goals or IDs"
           },
           "integration_points": {
             "type": ["object", "null"],
             "properties": {
               "modifies": {
                 "type": "array",
-                "items": {
-                  "type": "string"
-                }
+                "items": {"type": "string"},
+                "description": "Files to modify"
               },
               "creates": {
                 "type": "array",
-                "items": {
-                  "type": "string"
-                }
+                "items": {"type": "string"},
+                "description": "Files to create"
               },
               "tests_existing": {
                 "type": "array",
-                "items": {
-                  "type": "string"
-                }
+                "items": {"type": "string"},
+                "description": "Existing tests to update"
               },
               "patterns": {
                 "type": "array",
-                "items": {
-                  "type": "string"
-                }
+                "items": {"type": "string"},
+                "description": "Patterns to follow"
               }
             }
           },
           "blocked_count": {
             "type": ["integer", "null"],
-            "minimum": 0
+            "minimum": 0,
+            "description": "Number of times this sprint was blocked"
           },
           "must_complete_first": {
             "type": "boolean",
-            "default": false
+            "description": "Whether this sprint must complete before others can start (optional, defaults to false)"
           }
         }
       }
