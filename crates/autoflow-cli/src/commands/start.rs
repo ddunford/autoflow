@@ -206,13 +206,18 @@ IMPORTANT: All documentation files MUST be created in the .autoflow/docs/ direct
             let security = std::fs::read_to_string(".autoflow/docs/SECURITY.md").unwrap_or_default();
             let deployment = std::fs::read_to_string(".autoflow/docs/DEPLOYMENT.md").unwrap_or_default();
 
-            // Load JSON schema
-            let home = std::env::var("HOME").expect("HOME environment variable not set");
-            let schema_path = PathBuf::from(home).join(".autoflow/schemas/sprints.schema.json");
-            let json_schema = std::fs::read_to_string(&schema_path).unwrap_or_else(|_| {
-                eprintln!("Warning: Could not load schema from {:?}", schema_path);
-                String::from("{}")
-            });
+            // Load JSON schema - try global location first, then embedded
+            let json_schema = {
+                let home = std::env::var("HOME").expect("HOME environment variable not set");
+                let schema_path = PathBuf::from(home).join(".autoflow/schemas/sprints.schema.json");
+
+                if let Ok(content) = std::fs::read_to_string(&schema_path) {
+                    content
+                } else {
+                    // Fall back to embedded schema (compiled into binary)
+                    include_str!("../../../../schemas/sprints.schema.json").to_string()
+                }
+            };
 
             let sprints_context = format!(r#"Generate a complete sprint plan from the following project documentation:
 
