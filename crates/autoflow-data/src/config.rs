@@ -46,15 +46,38 @@ pub struct DefaultsConfig {
     pub max_iterations: u32,
     pub parallel_sprints: bool,
     pub auto_commit: bool,
+
+    /// Per-agent model overrides
+    /// Example: {"reviewer": "claude-opus-4", "unit-fixer": "claude-sonnet-4"}
+    #[serde(default)]
+    pub model_overrides: std::collections::HashMap<String, String>,
 }
 
-impl Default for DefaultsConfig {
+impl DefaultsConfig {
     fn default() -> Self {
         Self {
             model: "claude-sonnet-4-5-20250929".to_string(),
             max_iterations: 50,
             parallel_sprints: false,
             auto_commit: true,
+            model_overrides: std::collections::HashMap::new(),
         }
+    }
+
+    /// Get the model to use for a specific agent
+    /// Priority: agent override > global default > env var
+    pub fn get_model_for_agent(&self, agent_name: &str) -> String {
+        // Check environment variable first
+        if let Ok(env_model) = std::env::var("AUTOFLOW_MODEL") {
+            return env_model;
+        }
+
+        // Check per-agent override
+        if let Some(model) = self.model_overrides.get(agent_name) {
+            return model.clone();
+        }
+
+        // Fall back to global default
+        self.model.clone()
     }
 }

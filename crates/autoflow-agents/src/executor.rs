@@ -76,8 +76,16 @@ async fn load_agent_def(agent_name: &str) -> Result<AgentDef> {
         }
     }
 
+    // Check for model override via environment variable
+    let final_model = if let Ok(env_model) = std::env::var("AUTOFLOW_MODEL") {
+        tracing::info!("Using model override from AUTOFLOW_MODEL env: {}", env_model);
+        env_model
+    } else {
+        model
+    };
+
     Ok(AgentDef {
-        model,
+        model: final_model,
         tools,
         system_prompt: system_prompt.trim().to_string(),
     })
