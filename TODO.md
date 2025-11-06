@@ -1,7 +1,7 @@
 # AutoFlow TODO List
 
-**Last Updated**: 2025-11-05
-**Current Phase**: Foundation Complete → Implementing Core Features
+**Last Updated**: 2025-11-06
+**Current Phase**: Core System Complete → Ready for Integration Testing
 
 ---
 
@@ -18,82 +18,92 @@
 - [x] .gitignore and README
 - [x] All tests passing
 
+### Phase 2: Core Orchestration (Days 1-3) ✅
+- [x] Orchestrator (`crates/autoflow-core/src/orchestrator.rs`)
+  - [x] Load SPRINTS.yml with error handling
+  - [x] Implement full `run_sprint()` logic
+  - [x] Loop through status phases
+  - [x] Execute phase based on current status
+  - [x] Handle state transitions
+  - [x] Track retry counts
+  - [x] Detect BLOCKED status (3 retries exceeded)
+  - [x] Save progress after each iteration
+  - [x] Max iteration safety limit (50 iterations)
+  - [x] Implement `run_parallel()` for multiple sprints
+  - [x] Add progress callbacks/logging
+
+- [x] Agent Executor (`crates/autoflow-agents/src/executor.rs`)
+  - [x] Load agent definitions from ~/.claude/agents/
+  - [x] Parse agent frontmatter (model, tools, description)
+  - [x] Spawn Claude CLI with `tokio::process::Command`
+  - [x] Pass agent system prompt and context via stdin
+  - [x] Capture stdout/stderr streams
+  - [x] Map SprintStatus to agent name
+  - [x] Build agent context from sprint data
+
+- [x] `autoflow start` (`crates/autoflow-cli/src/commands/start.rs`)
+  - [x] Check if `.autoflow/SPRINTS.yml` exists
+  - [x] Load sprints with error handling
+  - [x] Filter sprints by status (PENDING or in-progress)
+  - [x] `--sprint=N` flag to run specific sprint
+  - [x] `--parallel` flag for concurrent execution
+  - [x] Create Orchestrator instance
+  - [x] Run orchestrator on sprints
+  - [x] Save updated SPRINTS.yml
+  - [x] Show completion summary
+
+### Phase 3: Quality Gates (Days 4-6) ✅
+- [x] Schema Validator (`crates/autoflow-quality/src/schema_validator.rs`)
+  - [x] Load JSON schemas from `~/.autoflow/schemas/`
+  - [x] Compile schemas with `jsonschema` crate
+  - [x] Validate SPRINTS.yml against schema
+  - [x] Return validation errors with line numbers
+  - [x] Auto-fix for common issues (markdown in YAML)
+  - [x] Normalize status values (Done → DONE)
+
+- [x] Quality Gate Pipeline (`crates/autoflow-quality/src/pipeline.rs`)
+  - [x] Create `QualityGate` trait
+  - [x] Implement gates:
+    - [x] SchemaValidator
+    - [x] OutputFormatValidator (detect markdown in YAML)
+    - [x] BlockerDetector (missing dependencies, APIs)
+    - [x] CodeQualityValidator (basic checks)
+  - [x] Run gates in sequence
+  - [x] Stop on critical failures
+  - [x] Generate QualityReport
+  - [x] Auto-fix capability
+
+- [x] `autoflow validate` command
+  - [x] Run quality gate pipeline
+  - [x] `--fix` flag for auto-fix
+  - [x] `--infrastructure` flag (stub)
+  - [x] `--integration` flag (stub)
+  - [x] Display validation report
+
+### Phase 6: Git Worktrees (Days 13-15) ✅
+- [x] Worktree Manager (`crates/autoflow-git/src/worktree.rs`)
+  - [x] Implement `create_worktree(branch_name)` using git CLI
+  - [x] Calculate unique ports for Docker (3000 + sprint_id * 10)
+  - [x] Copy docker-compose.yml with adjusted ports
+  - [x] Create isolated .env file
+  - [x] Implement `merge_worktree(branch_name)`
+  - [x] Implement `delete_worktree(branch_name)`
+  - [x] Implement `list_worktrees()`
+
+- [x] `autoflow worktree` commands
+  - [x] `worktree list` - Show all worktrees with filtering
+  - [x] `worktree create <branch>` - Create new worktree
+  - [x] `worktree merge <branch>` - Merge and clean up
+  - [x] `worktree delete <branch>` - Delete worktree
+  - [x] `worktree prune` - Clean up merged worktrees
+
+- [x] `autoflow sprints` commands
+  - [x] `sprints list` - Show all sprints grouped by status
+  - [x] `sprints show <id>` - Show sprint details with --integration flag
+
 ---
 
 ## 🚧 IN PROGRESS / TODO
-
-### Phase 2: Core Orchestration (Days 1-3)
-
-#### 1. Implement Orchestrator (`crates/autoflow-core/src/orchestrator.rs`)
-- [ ] Load SPRINTS.yml with error handling
-- [ ] Implement full `run_sprint()` logic
-  - [ ] Loop through status phases
-  - [ ] Execute phase based on current status
-  - [ ] Handle state transitions
-  - [ ] Track retry counts
-  - [ ] Detect BLOCKED status (3 retries exceeded)
-  - [ ] Save progress after each iteration
-- [ ] Add max iteration safety limit (50 iterations)
-- [ ] Implement `run_parallel()` for multiple sprints
-- [ ] Add progress callbacks/logging
-
-#### 2. Implement Agent Executor (`crates/autoflow-agents/src/`)
-- [ ] Create `executor.rs`
-  - [ ] Spawn Claude Code subprocess with `tokio::process::Command`
-  - [ ] Pass agent name and context via stdin
-  - [ ] Set max turns from agent config
-  - [ ] Capture stdout/stderr streams
-- [ ] Create `parser.rs`
-  - [ ] Parse JSON stream output from Claude Code
-  - [ ] Handle tool_use events
-  - [ ] Handle error events
-  - [ ] Extract file writes for validation
-- [ ] Create `selector.rs`
-  - [ ] Map SprintStatus to agent name
-  - [ ] Load agent definitions from `~/.autoflow/agents/`
-  - [ ] Parse agent frontmatter (tools, model, description)
-- [ ] Add tests for agent spawning
-
-#### 3. Implement `autoflow start` (`crates/autoflow-cli/src/commands/start.rs`)
-- [ ] Check if `.autoflow/SPRINTS.yml` exists
-- [ ] Load sprints with error handling
-- [ ] Filter sprints by status (PENDING or in-progress)
-- [ ] If `--sprint=N` flag, run only that sprint
-- [ ] If `--parallel` flag, run multiple sprints concurrently
-- [ ] Create Orchestrator instance
-- [ ] Run orchestrator on sprints
-- [ ] Display progress (use indicatif for progress bars)
-- [ ] Handle Ctrl+C gracefully (save state)
-- [ ] Save updated SPRINTS.yml
-- [ ] Show completion summary
-
-### Phase 3: Quality Gates (Days 4-6)
-
-#### 4. Schema Validator (`crates/autoflow-quality/src/schema_validator.rs`)
-- [ ] Load JSON schemas from `~/.autoflow/schemas/`
-- [ ] Compile schemas with `jsonschema` crate
-- [ ] Validate SPRINTS.yml against schema
-- [ ] Validate agent output files (CODE_REVIEW_RESULTS.yml, etc.)
-- [ ] Return validation errors with line numbers
-- [ ] Add auto-fix for common issues (markdown in YAML)
-
-#### 5. Quality Gate Pipeline (`crates/autoflow-quality/src/pipeline.rs`)
-- [ ] Create `QualityGate` trait
-- [ ] Implement gates:
-  - [ ] SchemaValidator
-  - [ ] OutputFormatValidator (detect markdown in YAML)
-  - [ ] BlockerDetector (missing dependencies, APIs)
-  - [ ] CodeQualityValidator (basic checks)
-- [ ] Run gates in sequence
-- [ ] Stop on critical failures
-- [ ] Generate QualityReport
-- [ ] Add auto-fix capability
-
-#### 6. Output Format Validator
-- [ ] Detect markdown code blocks in YAML files
-- [ ] Auto-extract YAML from markdown
-- [ ] Validate YAML syntax
-- [ ] Check for common agent mistakes (wrong field names)
 
 ### Phase 4: Feature Addition (Days 7-9)
 
