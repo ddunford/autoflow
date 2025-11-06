@@ -82,16 +82,38 @@ Return ONLY valid YAML (no markdown code blocks).
     // Execute make-sprints agent
     println!("  Spawning make-sprints agent...");
 
-    // For now, since we don't have claude-code, create a mock sprint
-    // In production, this would call: execute_agent("make-sprints", &context, 10).await?;
+    use autoflow_agents::execute_agent;
 
-    println!("\n{}", "⚠️  Note:".yellow());
-    println!("  Agent execution requires claude-code to be installed");
-    println!("  For now, creating a template sprint...");
-
-    // Create a template sprint
     let next_id = sprints_data.sprints.len() as u32 + 1;
-    let new_sprint = create_template_sprint(next_id, &description);
+
+    // Try to execute the agent, fall back to template if it fails
+    let new_sprint = match execute_agent("make-sprints", &context, 10).await {
+        Ok(result) => {
+            if result.success {
+                // Parse the agent output to extract sprint
+                match parse_sprint_from_output(&result.output, next_id, &description) {
+                    Ok(sprint) => {
+                        println!("  {} Agent generated sprint", "✓".green());
+                        sprint
+                    }
+                    Err(e) => {
+                        println!("  {} Failed to parse agent output: {}", "⚠".yellow(), e);
+                        println!("  Creating template sprint instead...");
+                        create_template_sprint(next_id, &description)
+                    }
+                }
+            } else {
+                println!("  {} Agent execution failed", "⚠".yellow());
+                println!("  Creating template sprint instead...");
+                create_template_sprint(next_id, &description)
+            }
+        }
+        Err(e) => {
+            println!("  {} Agent spawn failed: {}", "⚠".yellow(), e);
+            println!("  Creating template sprint instead...");
+            create_template_sprint(next_id, &description)
+        }
+    };
 
     // Add to sprints
     sprints_data.sprints.push(new_sprint.clone());
@@ -118,6 +140,45 @@ Return ONLY valid YAML (no markdown code blocks).
     println!("  2. Run {} to start development", "autoflow start".bright_blue());
 
     Ok(())
+}
+
+/// Parse sprint from agent output
+fn parse_sprint_from_output(output: &str, next_id: u32, _description: &str) -> anyhow::Result<Sprint> {
+    // Extract YAML from markdown if present
+    let yaml_content = if output.contains("```yaml") {
+        output
+            .split("```yaml")
+            .nth(1)
+            .and_then(|s| s.split("```").next())
+            .unwrap_or(output)
+            .trim()
+    } else {
+        output.trim()
+    };
+
+    // Write to temp file and parse with SprintsYaml
+    let temp_path = format!("/tmp/sprint-{}.yml", next_id);
+    fs::write(&temp_path, yaml_content)
+        .context("Failed to write temp sprint file")?;
+
+    // Try to load as full SprintsYaml document
+    match SprintsYaml::load(&temp_path) {
+        Ok(sprints_yaml) => {
+            // Extract first sprint
+            if let Some(mut sprint) = sprints_yaml.sprints.into_iter().next() {
+                sprint.id = next_id;
+                let _ = fs::remove_file(&temp_path); // Clean up
+                Ok(sprint)
+            } else {
+                let _ = fs::remove_file(&temp_path);
+                anyhow::bail!("No sprints found in agent output")
+            }
+        }
+        Err(e) => {
+            let _ = fs::remove_file(&temp_path);
+            anyhow::bail!("Failed to parse sprint YAML: {}", e)
+        }
+    }
 }
 
 /// Create a template sprint (used when agent is not available)
