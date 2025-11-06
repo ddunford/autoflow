@@ -9,13 +9,35 @@ pub async fn run(parallel: bool, sprint: Option<u32>) -> anyhow::Result<()> {
 
     // Check if project is initialized
     let sprints_path = ".autoflow/SPRINTS.yml";
+
+    // If SPRINTS.yml doesn't exist but IDEA.md does, initialize with empty sprints
     if !Path::new(sprints_path).exists() {
-        bail!(
-            "{}\nRun {} or {} first",
-            "Project not initialized.".red(),
-            "autoflow init".bright_blue(),
-            "autoflow create".bright_blue()
-        );
+        if Path::new("IDEA.md").exists() {
+            println!("\n{}", "Initializing project from IDEA.md...".bright_cyan());
+            std::fs::create_dir_all(".autoflow/docs")?;
+
+            let current_dir = std::env::current_dir()?;
+            let project_name = current_dir
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("Project")
+                .to_string();
+
+            let empty_sprints = format!(
+                "project:\n  name: \"{}\"\n  total_sprints: 0\n  current_sprint: null\n  last_updated: \"{}\"
+\nsprints: []",
+                project_name,
+                chrono::Utc::now().to_rfc3339()
+            );
+            std::fs::write(sprints_path, empty_sprints)?;
+        } else {
+            bail!(
+                "{}\nRun {} or {} first",
+                "Project not initialized.".red(),
+                "autoflow init".bright_blue(),
+                "autoflow create".bright_blue()
+            );
+        }
     }
 
     // Load sprints

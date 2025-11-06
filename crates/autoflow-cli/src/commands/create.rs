@@ -185,44 +185,13 @@ To be determined during implementation.
     }
     println!();
 
-    // 7. Create project directory structure based on tech stack
+    // 7. Create project directory structure
     println!("{}", "📂 Creating project structure...".bright_cyan());
 
-    // Determine tech stack from BUILD_SPEC
-    let build_spec_content = fs::read_to_string(".autoflow/docs/BUILD_SPEC.md").unwrap_or_default();
-    let has_backend = build_spec_content.to_lowercase().contains("backend")
-        || build_spec_content.to_lowercase().contains("laravel")
-        || build_spec_content.to_lowercase().contains("php")
-        || build_spec_content.to_lowercase().contains("node.js")
-        || build_spec_content.to_lowercase().contains("api");
-    let has_frontend = build_spec_content.to_lowercase().contains("frontend")
-        || build_spec_content.to_lowercase().contains("react")
-        || build_spec_content.to_lowercase().contains("vue")
-        || build_spec_content.to_lowercase().contains("ui");
-
-    if has_backend && has_frontend {
-        // Monorepo structure
-        fs::create_dir_all("backend/src")?;
-        fs::create_dir_all("backend/tests")?;
-        fs::create_dir_all("frontend/src")?;
-        fs::create_dir_all("frontend/tests")?;
-        println!("  {} Created backend/ and frontend/ directories", "✓".green());
-    } else if has_backend {
-        // Backend-only
-        fs::create_dir_all("src")?;
-        fs::create_dir_all("tests")?;
-        println!("  {} Created src/ and tests/ directories", "✓".green());
-    } else if has_frontend {
-        // Frontend-only
-        fs::create_dir_all("src")?;
-        fs::create_dir_all("tests")?;
-        println!("  {} Created src/ and tests/ directories", "✓".green());
-    } else {
-        // Generic structure
-        fs::create_dir_all("src")?;
-        fs::create_dir_all("tests")?;
-        println!("  {} Created src/ and tests/ directories", "✓".green());
-    }
+    // Always use a simple src/ and tests/ structure
+    fs::create_dir_all("src")?;
+    fs::create_dir_all("tests")?;
+    println!("  {} Created src/ and tests/ directories", "✓".green());
     println!();
 
     // 8. Analyze and create integration guide (if applicable)
@@ -297,17 +266,8 @@ The agent definition already contains the full YAML format. Just output the actu
 
     println!("{}", "📂 Project Structure:".bright_cyan());
     println!("  {}/", project_name.bright_blue());
-    if has_backend && has_frontend {
-        println!("  ├── backend/");
-        println!("  │   ├── src/                # Backend source code");
-        println!("  │   └── tests/              # Backend tests");
-        println!("  ├── frontend/");
-        println!("  │   ├── src/                # Frontend source code");
-        println!("  │   └── tests/              # Frontend tests");
-    } else {
-        println!("  ├── src/                    # Source code");
-        println!("  ├── tests/                  # Tests");
-    }
+    println!("  ├── src/                    # Source code");
+    println!("  ├── tests/                  # Tests");
     println!("  ├── .autoflow/");
     println!("  │   ├── docs/");
     println!("  │   │   ├── BUILD_SPEC.md   # Technical specification");
