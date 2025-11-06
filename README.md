@@ -1,8 +1,8 @@
 # AutoFlow - Autonomous Coding Agent
 
-🚀 **Status**: Core Infrastructure Complete (v0.1.1) - Agent Setup Required
+🚀 **Status**: v0.1.2 - Self-Healing Workflow Ready
 
-AutoFlow is a fully autonomous TDD-driven coding agent that takes you from requirements to production-ready code with minimal manual intervention. Built in Rust for performance and reliability.
+AutoFlow is a fully autonomous TDD-driven coding agent that takes you from requirements to production-ready code with minimal manual intervention. Just create an `IDEA.md` file and run `autoflow start` - everything else is automated. Built in Rust for performance and reliability.
 
 ## ⚠️ Current Status
 
@@ -46,14 +46,14 @@ AutoFlow is a fully autonomous TDD-driven coding agent that takes you from requi
 
 ```bash
 # Clone repository
-git clone https://github.com/autoflow/autoflow
+git clone https://github.com/ddunford/autoflow
 cd autoflow
 
-# Run installer (builds and installs everything)
-./scripts/install.sh
+# Build and install
+cargo install --path crates/autoflow-cli
 
-# Reload shell
-source ~/.bashrc  # or ~/.zshrc
+# Copy to PATH (if needed)
+cp ~/.cargo/bin/autoflow ~/.autoflow/bin/
 
 # Verify installation
 autoflow --version
@@ -71,10 +71,12 @@ The installer will:
 
 ### Create Your First Project
 
-⚠️ **Note**: Autonomous workflows require agent setup. See [SETUP_REQUIRED.md](SETUP_REQUIRED.md) for details.
+**New Simplified Workflow**: Just create an `IDEA.md` and run `autoflow start`!
 
 ```bash
-# 1. Write your idea
+# 1. Create a directory with your idea
+mkdir my-app && cd my-app
+
 cat > IDEA.md << 'EOF'
 # Task Manager App
 A real-time task management app with user auth,
@@ -82,24 +84,28 @@ task CRUD, WebSocket updates, and mobile support.
 Tech: React + Node.js + PostgreSQL
 EOF
 
-# 2. Create project (requires make-docs and make-sprints agents)
-autoflow create my-app --idea IDEA.md
-
-# 3. Build autonomously (requires sprint execution agents)
-cd my-app
+# 2. Start autonomous development
 autoflow start --parallel
 
-# 4. Done! Your app is ready
-docker-compose up
-open http://localhost:3000
+# That's it! AutoFlow will:
+# - Generate comprehensive documentation (.autoflow/docs/)
+# - Create sprint plan (.autoflow/SPRINTS.yml)
+# - Execute all sprints in parallel
+# - Build your app in ./src and ./tests
 ```
 
-**Alternative (No Agents Required)**:
+**What happens automatically:**
+- ✅ Docs generation (BUILD_SPEC, ARCHITECTURE, API_SPEC, UI_SPEC)
+- ✅ Sprint plan generation with proper task breakdown
+- ✅ TDD workflow (tests → code → review → deploy)
+- ✅ All code in `./src`, all tests in `./tests` (simple structure)
+
+**Alternative - Create with template**:
 ```bash
-# Manual workflow without agents
-mkdir my-app && cd my-app
-autoflow init
-# Manually create BUILD_SPEC.md and edit .autoflow/SPRINTS.yml
+# Create project with initial structure
+autoflow create my-app --idea IDEA.md
+cd my-app
+autoflow start --parallel
 ```
 
 ### Work with Existing Projects
@@ -127,6 +133,7 @@ autoflow worktree list
 
 ## Architecture
 
+### AutoFlow Repository Structure
 ```
 autoflow/
 ├── crates/
@@ -137,12 +144,39 @@ autoflow/
 │   ├── autoflow-data/      # Data structures (Sprint, Task, etc.)
 │   ├── autoflow-git/       # Git worktree operations
 │   └── autoflow-utils/     # Shared utilities
-├── agents/                 # 25+ specialized agents
-├── skills/                 # 13+ diagnostic skills
+├── agents/                 # 25+ specialized agents (in ~/.claude/agents/)
+├── skills/                 # 13+ diagnostic skills (in ~/.claude/skills/)
 ├── reference/              # Standards & guides
 ├── schemas/                # JSON schemas
 └── templates/              # Project templates
 ```
+
+### Generated Project Structure
+When you create a project with AutoFlow, it generates a simple, flat structure:
+
+```
+my-project/
+├── src/                    # All source code (backend, frontend, everything)
+├── tests/                  # All tests
+├── .autoflow/
+│   ├── docs/
+│   │   ├── BUILD_SPEC.md   # Technical specification
+│   │   ├── ARCHITECTURE.md # System architecture
+│   │   ├── API_SPEC.md     # API documentation
+│   │   └── UI_SPEC.md      # UI specifications
+│   ├── SPRINTS.yml         # Sprint plan with task breakdown
+│   ├── CLAUDE.md           # Project context for agents
+│   └── INTEGRATION_GUIDE.md # Existing codebase integration guide
+├── IDEA.md                 # Your original project idea
+└── .git/                   # Git repository
+```
+
+**Why `./src` instead of monorepo?**
+- ✅ Simpler structure for most projects
+- ✅ Easier navigation and development
+- ✅ Agents can reason about the codebase more effectively
+- ✅ Works great for microservices, full-stack apps, and libraries
+- ⚠️ For complex monorepos, you can organize within `./src` as needed
 
 ## Documentation
 
@@ -320,6 +354,64 @@ cargo test -- --nocapture
 - `autoflow doctor` diagnostics
 - Performance optimizations
 - Comprehensive test suite
+
+## Future Improvements
+
+### Planned Features
+
+**High Priority**:
+- 🔄 **Resume Interrupted Sprints**: Graceful handling of Ctrl+C with state persistence
+- 🎯 **Smart Context Loading**: Selective file reading based on task requirements (reduce token usage)
+- 📊 **Real-time Progress Dashboard**: Live view of parallel sprint execution with ETA
+- 🧪 **Test Coverage Tracking**: Enforce minimum coverage thresholds per sprint
+- 🔍 **Intelligent Code Search**: Better context gathering for existing codebases
+- 💾 **Sprint Checkpoints**: Save/restore sprint state at each phase transition
+
+**Medium Priority**:
+- 🤖 **Agent Hot-Reload**: Update agents without restarting workflow
+- 🎨 **Project Templates**: Pre-configured setups (e-commerce, SaaS, mobile, etc.)
+- 🔐 **Secrets Management**: Secure handling of API keys and credentials
+- 📝 **Documentation Generation**: Auto-generate API docs, README, guides
+- 🌍 **Multi-Language Support**: Beyond current JS/TS/Python/Rust
+- 🔄 **Dependency Management**: Auto-update and security scanning
+
+**Low Priority**:
+- 🎮 **Interactive Mode**: Step-through sprint execution with confirmations
+- 📈 **Metrics & Analytics**: Track velocity, success rates, common failures
+- 🔌 **Plugin System**: Community-contributed agents and skills
+- 🌐 **Remote Execution**: Run sprints on cloud workers
+- 🤝 **Team Collaboration**: Multi-developer coordination
+- 🎯 **Learning Mode**: Improve agent prompts based on outcomes
+
+### Known Issues & Improvements
+
+**Quality of Life**:
+- Add `autoflow doctor` diagnostic command
+- Better error messages with actionable suggestions
+- Automatic cleanup of failed sprints/worktrees
+- Git commit message templates based on sprint context
+- Configurable max parallel sprints based on system resources
+
+**Performance**:
+- Parallel doc generation (currently sequential)
+- Caching of LLM responses for identical contexts
+- Incremental sprint updates (don't regenerate unchanged tasks)
+- Lazy loading of large files during analysis
+
+**Reliability**:
+- Retry logic with exponential backoff for agent failures
+- Automatic rollback on critical errors
+- Better handling of network issues
+- Validation of generated YAML before saving
+
+**Developer Experience**:
+- VS Code extension for sprint visualization
+- GitHub Actions integration for CI/CD
+- Docker image for easy distribution
+- Homebrew formula for macOS
+- Snap package for Linux
+
+See [CHANGELOG.md](CHANGELOG.md) for completed improvements and [GitHub Issues](https://github.com/ddunford/autoflow/issues) to track or suggest new features.
 
 ## Troubleshooting
 
