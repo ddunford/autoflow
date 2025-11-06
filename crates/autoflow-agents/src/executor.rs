@@ -262,26 +262,158 @@ pub fn get_agent_for_status(status: &autoflow_data::SprintStatus) -> &'static st
     }
 }
 
-/// Get context for agent execution
+/// Extract a section from markdown content by heading
+fn extract_markdown_section(content: &str, section_name: &str) -> Option<String> {
+    let lines: Vec<&str> = content.lines().collect();
+    let mut in_section = false;
+    let mut section_content = String::new();
+    let mut section_level = 0;
+
+    for line in lines {
+        // Check if this is a heading
+        if line.starts_with('#') {
+            let heading_level = line.chars().take_while(|c| *c == '#').count();
+            let heading_text = line.trim_start_matches('#').trim();
+
+            // Check if this is our target section
+            if heading_text.eq_ignore_ascii_case(section_name) {
+                in_section = true;
+                section_level = heading_level;
+                section_content.push_str(line);
+                section_content.push('\n');
+                continue;
+            }
+
+            // If we're in a section and hit a same-or-higher level heading, we're done
+            if in_section && heading_level <= section_level {
+                break;
+            }
+        }
+
+        // Add line if we're in the target section
+        if in_section {
+            section_content.push_str(line);
+            section_content.push('\n');
+        }
+    }
+
+    if section_content.is_empty() {
+        None
+    } else {
+        Some(section_content)
+    }
+}
+
+/// Get context for agent execution with full task details and referenced documentation
 pub fn build_agent_context(sprint: &autoflow_data::Sprint) -> String {
+    // Build detailed task information
+    let tasks_detail = sprint
+        .tasks
+        .iter()
+        .map(|task| {
+            let mut task_str = format!("\n## Task: {}\n", task.title);
+            task_str.push_str(&format!("- ID: {}\n", task.id));
+            task_str.push_str(&format!("- Effort: {}\n", task.effort));
+            task_str.push_str(&format!("- Priority: {:?}\n", task.priority));
+            task_str.push_str(&format!("- Type: {:?}\n", task.r#type));
+            task_str.push_str(&format!("- Feature: {}\n", task.feature));
+
+            if let Some(ref desc) = task.description {
+                task_str.push_str(&format!("\n**Description:**\n{}\n", desc));
+            }
+
+            if !task.business_rules.is_empty() {
+                task_str.push_str("\n**Business Rules:**\n");
+                for rule in &task.business_rules {
+                    task_str.push_str(&format!("- {}\n", rule));
+                }
+            }
+
+            if !task.acceptance_criteria.is_empty() {
+                task_str.push_str("\n**Acceptance Criteria:**\n");
+                for criterion in &task.acceptance_criteria {
+                    task_str.push_str(&format!("- {}\n", criterion));
+                }
+            }
+
+            if let Some(ref test_spec) = task.test_specification {
+                task_str.push_str(&format!("\n**Test Specification:**\n{}\n", test_spec));
+            }
+
+            if !task.docs.is_empty() {
+                task_str.push_str("\n**Documentation References:**\n");
+                for doc in &task.docs {
+                    task_str.push_str(&format!("- {}\n", doc));
+                }
+            }
+
+            task_str
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    // Load and include referenced documentation sections
+    let mut doc_sections = String::new();
+    let unique_docs: std::collections::HashSet<String> = sprint
+        .tasks
+        .iter()
+        .flat_map(|t| t.docs.iter().cloned())
+        .collect();
+
+    if !unique_docs.is_empty() {
+        doc_sections.push_str("\n\n# Referenced Documentation\n");
+
+        for doc_ref in unique_docs {
+            // Parse reference: "BUILD_SPEC.md#TechStack" -> ("BUILD_SPEC.md", Some("TechStack"))
+            let parts: Vec<&str> = doc_ref.split('#').collect();
+            let filename = parts[0];
+            let section = parts.get(1);
+
+            let doc_path = format!(".autoflow/docs/{}", filename);
+
+            if let Ok(content) = std::fs::read_to_string(&doc_path) {
+                if let Some(section_name) = section {
+                    // Extract specific section
+                    if let Some(section_content) = extract_markdown_section(&content, section_name) {
+                        doc_sections.push_str(&format!("\n## {} (from {})\n\n{}\n", section_name, filename, section_content));
+                    } else {
+                        doc_sections.push_str(&format!("\n## {} (section not found in {})\n\n", section_name, filename));
+                    }
+                } else {
+                    // Include entire file if no section specified
+                    doc_sections.push_str(&format!("\n## {}\n\n{}\n", filename, content));
+                }
+            } else {
+                doc_sections.push_str(&format!("\n## {} (file not found at {})\n\n", doc_ref, doc_path));
+            }
+        }
+    }
+
     format!(
         r#"Sprint #{}: {}
 
-Status: {:?}
-Total Effort: {}
-Max Effort: {}
+**Status:** {:?}
+**Workflow:** {:?}
+**Total Effort:** {}
+**Max Effort:** {}
 
-Deliverables:
+# Deliverables
+
 {}
 
-Tasks:
+# Tasks
+{}
 {}
 
-Execute the appropriate actions for this sprint phase.
+---
+
+Execute the appropriate actions for this sprint phase based on the status and workflow type.
+Use the task details, business rules, acceptance criteria, and referenced documentation above.
 "#,
         sprint.id,
         sprint.goal,
         sprint.status,
+        sprint.workflow_type,
         sprint.total_effort,
         sprint.max_effort,
         sprint
@@ -290,11 +422,7 @@ Execute the appropriate actions for this sprint phase.
             .map(|d| format!("- {}", d))
             .collect::<Vec<_>>()
             .join("\n"),
-        sprint
-            .tasks
-            .iter()
-            .map(|t| format!("- {} ({})", t.title, t.effort))
-            .collect::<Vec<_>>()
-            .join("\n"),
+        tasks_detail,
+        doc_sections,
     )
 }
