@@ -172,26 +172,77 @@ IMPORTANT:
 6. Output ONLY raw YAML - no markdown fences, no explanations
 "#, build_spec, architecture, api_spec, ui_spec, data_model, testing_strategy, error_handling, state_management, security, deployment);
 
-            match autoflow_agents::execute_agent("make-sprints", &sprints_context, 20, None).await {
-                Ok(result) if result.success => {
-                    println!("  {} Sprint plan generated", "✓".green());
+            // Retry loop for sprint generation with validation
+            let max_retries = 2;
+            let mut retry_count = 0;
+            let mut last_error = String::new();
 
-                    // Validate and fix YAML before saving
-                    let yaml_content = autoflow_utils::extract_yaml_from_output(&result.output);
-                    match SprintsYaml::validate_and_fix(&yaml_content) {
-                        Ok(validated_sprints) => {
-                            // Save validated sprints
-                            validated_sprints.save(sprints_path)?;
-                            println!("  {} Validated and saved to {}", "✓".green(), sprints_path.bright_blue());
-                            sprints_data = validated_sprints;
-                        }
-                        Err(e) => {
-                            bail!("Generated SPRINTS.yml is invalid: {}. Please check the make-sprints agent output.", e);
+            loop {
+                let context = if retry_count == 0 {
+                    format!("{}\n\nIMPORTANT: Use the Write tool to save the SPRINTS.yml file directly to `.autoflow/SPRINTS.yml`. This avoids truncation issues with large files.", sprints_context)
+                } else {
+                    format!("{}\n\nPREVIOUS ATTEMPT FAILED:\n{}\n\nPlease fix the issues and use the Write tool to save to `.autoflow/SPRINTS.yml` directly.", sprints_context, last_error)
+                };
+
+                match autoflow_agents::execute_agent("make-sprints", &context, 20, None).await {
+                    Ok(result) if result.success => {
+                        // Check if file was written directly
+                        if std::path::Path::new(sprints_path).exists() {
+                            println!("  {} Sprint plan generated and saved", "✓".green());
+
+                            // Validate the written file
+                            match SprintsYaml::load(sprints_path) {
+                                Ok(validated_sprints) => {
+                                    println!("  {} Validated SPRINTS.yml", "✓".green());
+                                    sprints_data = validated_sprints;
+                                    break;
+                                }
+                                Err(e) => {
+                                    last_error = format!("YAML validation failed: {}", e);
+                                    println!("  {} {}", "⚠".yellow(), last_error.yellow());
+                                    retry_count += 1;
+
+                                    if retry_count >= max_retries {
+                                        bail!("Failed to generate valid SPRINTS.yml after {} attempts. Last error: {}", max_retries, last_error);
+                                    }
+                                    println!("  {} Retrying... (attempt {}/{})", "↻".yellow(), retry_count + 1, max_retries);
+                                    continue;
+                                }
+                            }
+                        } else {
+                            // Fallback: extract from output if file wasn't written
+                            println!("  {} Sprint plan generated (from output)", "✓".green());
+
+                            let yaml_content = autoflow_utils::extract_yaml_from_output(&result.output);
+                            match SprintsYaml::validate_and_fix(&yaml_content) {
+                                Ok(validated_sprints) => {
+                                    validated_sprints.save(sprints_path)?;
+                                    println!("  {} Validated and saved to {}", "✓".green(), sprints_path.bright_blue());
+                                    sprints_data = validated_sprints;
+                                    break;
+                                }
+                                Err(e) => {
+                                    last_error = format!("YAML extraction/validation failed: {}. Output may be truncated.", e);
+                                    println!("  {} {}", "⚠".yellow(), last_error.yellow());
+                                    retry_count += 1;
+
+                                    if retry_count >= max_retries {
+                                        bail!("Failed to generate valid SPRINTS.yml after {} attempts. Last error: {}\n\nTip: The output may be too large. The agent should use the Write tool instead.", max_retries, last_error);
+                                    }
+                                    println!("  {} Retrying with explicit Write tool instruction... (attempt {}/{})", "↻".yellow(), retry_count + 1, max_retries);
+                                    continue;
+                                }
+                            }
                         }
                     }
-                }
-                _ => {
-                    bail!("Failed to generate sprints. Please run 'autoflow create' instead.");
+                    _ => {
+                        retry_count += 1;
+                        if retry_count >= max_retries {
+                            bail!("Failed to generate sprints after {} attempts. Please run 'autoflow create' instead.", max_retries);
+                        }
+                        println!("  {} Agent execution failed, retrying... (attempt {}/{})", "⚠".yellow(), retry_count + 1, max_retries);
+                        continue;
+                    }
                 }
             }
             println!();
