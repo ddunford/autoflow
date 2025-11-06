@@ -1,0 +1,12 @@
+[package]
+name = "autoflow-agents"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+autoflow-data = { path = "../autoflow-data" }
+tokio = { workspace = true }
+tracing = { workspace = true }
+anyhow = { workspace = true }

@@ -1,0 +1,26 @@
+[package]
+name = "autoflow-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "autoflow"
+path = "src/main.rs"
+
+[dependencies]
+autoflow-data = { path = "../autoflow-data" }
+autoflow-core = { path = "../autoflow-core" }
+autoflow-quality = { path = "../autoflow-quality" }
+autoflow-utils = { path = "../autoflow-utils" }
+
+clap = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+colored = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+autoflow-agents = { path = "../autoflow-agents" }

@@ -1,0 +1,7 @@
+project:
+  name: "New Project"
+  total_sprints: 0
+  current_sprint: null
+  last_updated: "2025-01-01T00:00:00Z"
+
+sprints: []

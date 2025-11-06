@@ -1,0 +1,19 @@
+[package]
+name = "autoflow-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+autoflow-data = { path = "../autoflow-data" }
+autoflow-agents = { path = "../autoflow-agents" }
+
+tokio = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+walkdir = { workspace = true }

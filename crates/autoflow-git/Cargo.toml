@@ -1,0 +1,11 @@
+[package]
+name = "autoflow-git"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+autoflow-data = { path = "../autoflow-data" }
+tokio = { workspace = true }
+tracing = { workspace = true }

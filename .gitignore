@@ -1,0 +1,28 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# AutoFlow
+.autoflow/
+!.autoflow/docs/
+!templates/.autoflow/
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
