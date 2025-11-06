@@ -71,20 +71,31 @@ pub async fn run(parallel: bool, sprint: Option<u32>) -> anyhow::Result<()> {
                 r#"VALIDATION ERROR FOUND:
 {}
 
-TASK: Fix the SPRINTS.yml file at `.autoflow/SPRINTS.yml`
+TASK: Fix ALL validation errors in `.autoflow/SPRINTS.yml`
 
 The file exists but fails validation (likely due to schema updates).
 
-1. Read the existing file using the Read tool
-2. Identify and fix the validation errors
-3. Use the Write tool to save the corrected SPRINTS.yml
+IMPORTANT: Fix ALL instances of missing fields throughout the entire file:
+- If 'last_updated' is missing from project → add it with current timestamp
+- If 'last_updated' is missing from ANY sprint → add to ALL sprints
+- If 'workflow_type' is missing from ANY sprint → add to ALL sprints (default: IMPLEMENTATION)
+- If 'type' is missing from ANY task → add to ALL tasks (default: IMPLEMENTATION)
 
-Common fixes needed after schema updates:
-- Add missing 'type' field to tasks (IMPLEMENTATION, DOCUMENTATION, TEST, INFRASTRUCTURE, REFACTOR, BUGFIX)
-- Add missing 'workflow_type' field to sprints (IMPLEMENTATION, DOCUMENTATION, TEST, INFRASTRUCTURE, REFACTOR)
-- Add missing 'last_updated' field to project metadata (use current timestamp)
-- Fix enum values to match SCREAMING_SNAKE_CASE
-- Add missing required fields with sensible defaults
+Steps:
+1. Read the existing file using the Read tool
+2. Identify ALL validation errors (check project, ALL sprints, ALL tasks)
+3. Fix ALL occurrences at once:
+   - Add missing 'type' field to EVERY task (IMPLEMENTATION, DOCUMENTATION, TEST, INFRASTRUCTURE, REFACTOR, BUGFIX)
+   - Add missing 'workflow_type' field to EVERY sprint (IMPLEMENTATION, DOCUMENTATION, TEST, INFRASTRUCTURE, REFACTOR)
+   - Add missing 'last_updated' field to project AND every sprint (use current timestamp: "2025-11-06T17:30:00Z")
+   - Fix enum values to match SCREAMING_SNAKE_CASE
+4. Use the Write tool to save the corrected SPRINTS.yml
+
+Example fixes:
+- Project missing last_updated → add: last_updated: "2025-11-06T17:30:00Z"
+- Sprint missing workflow_type → add: workflow_type: IMPLEMENTATION
+- Sprint missing last_updated → add: last_updated: "2025-11-06T17:30:00Z"
+- Task missing type → add: type: IMPLEMENTATION
 
 Only fix what's broken - preserve all existing content and sprint progress."#,
                 e
