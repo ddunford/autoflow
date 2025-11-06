@@ -45,11 +45,20 @@ impl SprintsYaml {
             Err(e) => return Err(format!("Failed to convert YAML to JSON: {}", e)),
         };
 
-        // Load schema
-        let schema_path = "schemas/sprints.schema.json";
-        let schema_content = match fs::read_to_string(schema_path) {
-            Ok(content) => content,
-            Err(e) => return Err(format!("Failed to read schema file {}: {}", schema_path, e)),
+        // Load schema - check global location first, then local
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+        let global_schema_path = format!("{}/.autoflow/schemas/sprints.schema.json", home);
+        let local_schema_path = "schemas/sprints.schema.json";
+
+        let (schema_path, schema_content) = if let Ok(content) = fs::read_to_string(&global_schema_path) {
+            (global_schema_path, content)
+        } else if let Ok(content) = fs::read_to_string(local_schema_path) {
+            (local_schema_path.to_string(), content)
+        } else {
+            return Err(format!(
+                "Failed to read schema file. Tried:\n  1. {}\n  2. {}",
+                global_schema_path, local_schema_path
+            ));
         };
 
         let schema_json: serde_json::Value = match serde_json::from_str(&schema_content) {
