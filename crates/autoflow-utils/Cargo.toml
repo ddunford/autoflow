@@ -11,3 +11,6 @@ tracing-subscriber = { workspace = true }
 autoflow-data = { path = "../autoflow-data" }
 serde_yaml = { workspace = true }
 chrono = { workspace = true }
+anyhow = { workspace = true }
+colored = { workspace = true }
+dirs = { workspace = true }

@@ -31,6 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Auto-Update System
+- **Automatic Update Checks**: Checks for agent/skill updates on `autoflow start` and `autoflow init`
+- **Smart Update Detection**: Compares installed agents/skills with templates based on modification time
+- **User-Friendly Prompts**: Shows what's updated/new with [Y/n/skip] options
+- **24-Hour Interval**: Checks once per day by default to avoid interruptions
+- **Configuration**: `[updates]` section in config.toml to control behavior
+- **Non-Intrusive**: Silent on failures, skips gracefully if no updates
+
 #### Enhanced Documentation System
 - **6 New Documentation Types**:
   - `DATA_MODEL.md` - Complete database schema, relationships, indexes

@@ -239,6 +239,10 @@ bugfix_sprint_id = 900
 default_model = "claude-sonnet-4-5-20250929"
 max_turns = 10
 timeout_seconds = 300
+
+[updates]
+auto_check = true
+check_interval_hours = 24
 EOF
 echo "  ✓ Config created at $INSTALL_DIR/config.toml"
 echo ""

@@ -50,6 +50,7 @@ git2 = "0.19"
 # File operations
 walkdir = "2.4"
 glob = "0.3"
+dirs = "5.0"
 
 # Date/time
 chrono = { version = "0.4", features = ["serde"] }

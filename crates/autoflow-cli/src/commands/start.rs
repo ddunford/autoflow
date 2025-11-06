@@ -1,11 +1,29 @@
 use anyhow::{bail, Context};
 use autoflow_core::Orchestrator;
 use autoflow_data::{SprintsYaml, SprintStatus};
+use autoflow_utils::{check_for_updates, should_check_for_updates, prompt_and_update, update_check_timestamp};
 use colored::*;
 use std::path::Path;
 
 pub async fn run(parallel: bool, sprint: Option<u32>) -> anyhow::Result<()> {
     println!("{}", "🚀 Starting AutoFlow...".bright_cyan().bold());
+
+    // Check for updates (if enabled and interval has passed)
+    if should_check_for_updates().unwrap_or(false) {
+        match check_for_updates() {
+            Ok(info) if info.has_updates() => {
+                // Prompt user and update if they accept
+                prompt_and_update(&info)?;
+            }
+            Ok(_) => {
+                // No updates, just update timestamp
+                update_check_timestamp()?;
+            }
+            Err(_) => {
+                // Silently ignore update check failures
+            }
+        }
+    }
 
     // Check if project is initialized
     let sprints_path = ".autoflow/SPRINTS.yml";
