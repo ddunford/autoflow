@@ -1,5 +1,6 @@
 use anyhow::{bail, Context};
 use autoflow_git::WorktreeManager;
+use autoflow_utils::{sanitize_branch_name, Paths};
 use colored::*;
 use std::path::Path;
 
@@ -13,7 +14,7 @@ pub async fn run(description: String, auto_fix: bool, _playwright_headed: bool) 
     }
 
     // Check if project is initialized
-    if !Path::new(".autoflow").exists() {
+    if !Path::new(Paths::AUTOFLOW_DIR).exists() {
         bail!(
             "{}\nRun {} first",
             "Project not initialized.".red(),
@@ -23,7 +24,7 @@ pub async fn run(description: String, auto_fix: bool, _playwright_headed: bool) 
 
     // Create bugfix worktree
     println!("\n{}", "Creating bugfix worktree...".bright_cyan());
-    let branch_name = format!("bugfix-{}", sanitize_branch_name(&description));
+    let branch_name = format!("bugfix-{}", sanitize_branch_name(&description, 5));
 
     let manager = WorktreeManager::new(".")
         .context("Failed to open git repository")?;
@@ -81,11 +82,10 @@ Provide a detailed analysis of:
                 println!("{}", result.output);
 
                 // Save analysis
-                let analysis_dir = ".autoflow/bugs";
-                std::fs::create_dir_all(analysis_dir)?;
+                std::fs::create_dir_all(Paths::BUGS_DIR)?;
 
                 let timestamp = chrono::Utc::now().format("%Y%m%d-%H%M%S");
-                let analysis_file = format!("{}/bug-{}.md", analysis_dir, timestamp);
+                let analysis_file = format!("{}/bug-{}.md", Paths::BUGS_DIR, timestamp);
 
                 let analysis_content = format!(
                     r#"# Bug Analysis
@@ -133,11 +133,10 @@ Worktree location: Check with `autoflow worktree list`
             println!("\n{}", "Creating bug report manually...".bright_yellow());
 
             // Create manual bug report
-            let analysis_dir = ".autoflow/bugs";
-            std::fs::create_dir_all(analysis_dir)?;
+            std::fs::create_dir_all(Paths::BUGS_DIR)?;
 
             let timestamp = chrono::Utc::now().format("%Y%m%d-%H%M%S");
-            let analysis_file = format!("{}/bug-{}.md", analysis_dir, timestamp);
+            let analysis_file = format!("{}/bug-{}.md", Paths::BUGS_DIR, timestamp);
 
             let manual_report = format!(
                 r#"# Bug Report
@@ -172,18 +171,4 @@ Bugfix branch: `{}`
     }
 
     Ok(())
-}
-
-/// Sanitize bug description for use in branch name
-fn sanitize_branch_name(description: &str) -> String {
-    description
-        .to_lowercase()
-        .chars()
-        .map(|c| if c.is_alphanumeric() || c == '-' { c } else { '-' })
-        .collect::<String>()
-        .split('-')
-        .filter(|s| !s.is_empty())
-        .take(5) // Limit to first 5 words
-        .collect::<Vec<_>>()
-        .join("-")
 }

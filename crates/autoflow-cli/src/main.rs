@@ -24,6 +24,17 @@ enum Commands {
         force: bool,
     },
 
+    /// Create new project from IDEA.md (full autonomous setup)
+    Create {
+        /// Project name (optional, uses current directory if IDEA.md exists)
+        #[arg(value_name = "NAME", required = false)]
+        name: Option<String>,
+
+        /// Path to IDEA.md file (optional, uses ./IDEA.md or creates template if not provided)
+        #[arg(short, long)]
+        idea: Option<String>,
+    },
+
     /// Initialize new project with AutoFlow
     Init {
         /// Use specific template (e.g., "react-node", "laravel-react")
@@ -119,6 +130,10 @@ enum Commands {
     /// Manage development environment
     #[command(subcommand)]
     Env(EnvCommands),
+
+    /// Manage MCP servers
+    #[command(subcommand)]
+    Mcp(McpCommands),
 }
 
 #[derive(Subcommand, Debug)]
@@ -197,6 +212,28 @@ enum EnvCommands {
     Health,
 }
 
+#[derive(Subcommand, Debug)]
+enum McpCommands {
+    /// Install MCP servers (installs all recommended if none specified)
+    Install {
+        /// Specific servers to install (memory, playwright, github, postgres, etc.)
+        servers: Vec<String>,
+
+        /// Install to project level (.autoflow/settings.json) instead of global
+        #[arg(long)]
+        project: bool,
+    },
+
+    /// List installed MCP servers
+    List,
+
+    /// Show information about available servers
+    Info {
+        /// Server name (optional, shows all if not specified)
+        server: Option<String>,
+    },
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
@@ -212,6 +249,9 @@ async fn main() -> anyhow::Result<()> {
     match cli.command {
         Commands::Install { force } => {
             commands::install::run(force).await?;
+        }
+        Commands::Create { name, idea } => {
+            commands::create::run(name, idea).await?;
         }
         Commands::Init { template } => {
             commands::init::run(template).await?;
@@ -263,6 +303,17 @@ async fn main() -> anyhow::Result<()> {
         Commands::Env(cmd) => {
             commands::env::run(cmd).await?;
         }
+        Commands::Mcp(cmd) => match cmd {
+            McpCommands::Install { servers, project } => {
+                commands::mcp::run_install(servers, project).await?;
+            }
+            McpCommands::List => {
+                commands::mcp::run_list().await?;
+            }
+            McpCommands::Info { server } => {
+                commands::mcp::run_info(server).await?;
+            }
+        },
     }
 
     Ok(())

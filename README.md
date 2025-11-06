@@ -1,27 +1,46 @@
-# AutoFlow - Best-in-Class Autonomous Coding Agent
+# AutoFlow - Autonomous Coding Agent
 
-🚀 **Status**: Early Development (v0.1.0)
+🚀 **Status**: Core Infrastructure Complete (v0.1.1) - Agent Setup Required
 
-AutoFlow is a fully autonomous TDD-driven coding agent that takes you from requirements to production-ready code with zero manual intervention.
+AutoFlow is a fully autonomous TDD-driven coding agent that takes you from requirements to production-ready code with minimal manual intervention. Built in Rust for performance and reliability.
+
+## ⚠️ Current Status
+
+**What Works**:
+- ✅ Core infrastructure (7 Rust crates, 14 CLI commands)
+- ✅ Git worktree isolation
+- ✅ Quality gates and validation
+- ✅ Project initialization and status tracking
+- ✅ MCP server management
+
+**What Requires Setup**:
+- ⚠️ Autonomous workflows need agent definitions ([see setup guide](SETUP_REQUIRED.md))
+- ⚠️ `agents/` and `skills/` directories not included in repo (yet)
+
+**Quick Assessment**:
+- Want to use AutoFlow TODAY? → See [SETUP_REQUIRED.md](SETUP_REQUIRED.md) for agent setup
+- Want manual workflow? → Commands work without agents
+- Contributing? → Help add agent definitions to the repo!
 
 ## Features
 
-- ✅ **Fully Autonomous**: From `BUILD_SPEC.md` to running application
-- 🧪 **TDD Pipeline**: Automated test-first development (RED → GREEN → REFACTOR)
+- ✅ **Fully Autonomous**: From `IDEA.md` to running application
+- 🧪 **TDD Pipeline**: Automated test-first development (RED → GREEN → REFACTOR → REVIEW)
 - 🌲 **Git Worktree Isolation**: Each sprint/bugfix in isolated workspace
-- 🐛 **Autonomous Bug Fixing**: Investigate, reproduce (Playwright MCP), fix, test
+- 🐛 **Autonomous Bug Fixing**: Investigate, reproduce, fix, and test
 - 🔍 **Code-Aware**: Analyzes existing codebases and integrates seamlessly
 - 🐳 **Environment Setup**: Automatic Docker, databases, services configuration
-- 🎯 **Quality Gates**: Multi-layer validation to catch LLM mistakes
+- 🎯 **Quality Gates**: Multi-layer validation to catch mistakes
 - 📊 **Observable**: Structured logging, metrics, progress tracking
 
 ## Quick Start
 
 ### Prerequisites
 
-- Rust 1.70+ (for building from source)
-- Docker & Docker Compose (for development environments)
-- Claude Code CLI installed
+- **Rust 1.70+** (for building from source)
+- **Claude CLI** (not Claude Desktop) - https://claude.com/cli
+- **Docker & Docker Compose** (optional, for dev environments)
+- **Git** 2.20+ (for worktree support)
 
 ### Installation
 
@@ -30,32 +49,79 @@ AutoFlow is a fully autonomous TDD-driven coding agent that takes you from requi
 git clone https://github.com/autoflow/autoflow
 cd autoflow
 
-# Build from source
-cargo build --release
+# Run installer (builds and installs everything)
+./scripts/install.sh
 
-# Install (coming soon)
-cargo install --path crates/autoflow-cli
+# Reload shell
+source ~/.bashrc  # or ~/.zshrc
+
+# Verify installation
+autoflow --version
 ```
 
-### Usage
+The installer will:
+- Build the release binary
+- Install to `~/.autoflow/bin/`
+- Copy 25+ agents to `~/.claude/agents/`
+- Copy 13+ skills to `~/.claude/skills/`
+- Add to your PATH
+- Create configuration files
+
+**Works with existing Claude Code setup** - Won't overwrite your custom agents or skills.
+
+### Create Your First Project
+
+⚠️ **Note**: Autonomous workflows require agent setup. See [SETUP_REQUIRED.md](SETUP_REQUIRED.md) for details.
 
 ```bash
-# Initialize new project
+# 1. Write your idea
+cat > IDEA.md << 'EOF'
+# Task Manager App
+A real-time task management app with user auth,
+task CRUD, WebSocket updates, and mobile support.
+Tech: React + Node.js + PostgreSQL
+EOF
+
+# 2. Create project (requires make-docs and make-sprints agents)
+autoflow create my-app --idea IDEA.md
+
+# 3. Build autonomously (requires sprint execution agents)
+cd my-app
+autoflow start --parallel
+
+# 4. Done! Your app is ready
+docker-compose up
+open http://localhost:3000
+```
+
+**Alternative (No Agents Required)**:
+```bash
+# Manual workflow without agents
+mkdir my-app && cd my-app
+autoflow init
+# Manually create BUILD_SPEC.md and edit .autoflow/SPRINTS.yml
+```
+
+### Work with Existing Projects
+
+```bash
+# Initialize in existing project
+cd existing-project
 autoflow init
 
-# Start autonomous development
-autoflow start
+# Analyze codebase
+autoflow analyze
 
-# Add feature to existing codebase
-autoflow add "Add payment processing"
+# Add new feature
+autoflow add "Add payment processing with Stripe"
 
 # Fix a bug
 autoflow fix "Login button doesn't work on mobile"
 
-# Check status
+# Check progress
 autoflow status
 
-# Manage worktrees
+# Manage isolated workspaces
 autoflow worktree list
 ```
 
@@ -64,15 +130,15 @@ autoflow worktree list
 ```
 autoflow/
 ├── crates/
-│   ├── autoflow-cli/       # CLI application
+│   ├── autoflow-cli/       # CLI application (14 commands)
 │   ├── autoflow-core/      # Orchestration & state machine
-│   ├── autoflow-agents/    # Agent management
-│   ├── autoflow-quality/   # Quality gates
-│   ├── autoflow-data/      # Data structures
+│   ├── autoflow-agents/    # Agent execution & management
+│   ├── autoflow-quality/   # Quality gates & validation
+│   ├── autoflow-data/      # Data structures (Sprint, Task, etc.)
 │   ├── autoflow-git/       # Git worktree operations
-│   └── autoflow-utils/     # Utilities
-├── agents/                 # Agent definitions (25+)
-├── skills/                 # Skill definitions (13+)
+│   └── autoflow-utils/     # Shared utilities
+├── agents/                 # 25+ specialized agents
+├── skills/                 # 13+ diagnostic skills
 ├── reference/              # Standards & guides
 ├── schemas/                # JSON schemas
 └── templates/              # Project templates
@@ -80,29 +146,149 @@ autoflow/
 
 ## Documentation
 
-- [Architecture](ARCHITECTURE.md) - System design and components
-- [Rebuild Plan](REBUILD_PLAN.md) - Technology decisions and roadmap
-- [Feature Workflow](FEATURE_WORKFLOW.md) - Adding features to existing code
-- [Bug Fix Workflow](BUG_FIX_WORKFLOW.md) - Autonomous bug fixing
-- [Environment Setup](ENVIRONMENT_SETUP.md) - Infrastructure automation
+### User Documentation
+- **[USER_GUIDE.md](USER_GUIDE.md)** - Complete workflows and examples
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
+- **[MCP_SERVERS.md](MCP_SERVERS.md)** - Extend capabilities with MCP servers
+- **[CONFIGURATION.md](CONFIGURATION.md)** - Global vs project-level config
+
+### Developer Documentation
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System design and internals
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history
+
+## Commands
+
+### Project Management
+```bash
+autoflow create <name> --idea IDEA.md  # Create new project from idea
+autoflow init [--template react-node]  # Initialize in existing directory
+autoflow status [--json]                # Show sprint progress
+autoflow analyze                        # Analyze codebase structure
+```
+
+### Development
+```bash
+autoflow start [--parallel] [--sprint ID]  # Start autonomous development
+autoflow add "feature description"         # Add new feature
+autoflow fix "bug description"             # Investigate and fix bug
+autoflow rollback [--sprint ID]            # Reset sprint to PENDING
+```
+
+### Worktrees (Isolated Workspaces)
+```bash
+autoflow worktree list                  # List all worktrees
+autoflow worktree create <branch>       # Create new worktree
+autoflow worktree merge <branch>        # Merge to main
+autoflow worktree delete <branch>       # Remove worktree
+```
+
+### Sprints & Agents
+```bash
+autoflow sprints list                   # List all sprints
+autoflow sprints show <id>              # Show sprint details
+autoflow agents [--detailed]            # List available agents
+autoflow skills                         # List available skills
+```
+
+### Environment & Quality
+```bash
+autoflow env start|stop|restart         # Manage Docker containers
+autoflow env logs [--follow]            # View container logs
+autoflow validate [--fix]               # Run quality gates
+autoflow mcp install [servers...]       # Install MCP servers
+```
+
+## Example Workflows
+
+### Creating a New App
+
+```bash
+autoflow create ecommerce --idea IDEA.md
+cd ecommerce
+autoflow start --parallel
+
+# Monitor progress
+autoflow status
+
+# Output:
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#   Sprint Progress
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# ✓ Sprint 1: Infrastructure Setup (DONE)
+# ✓ Sprint 2: Database Models (DONE)
+# ⚙ Sprint 3: API Endpoints (IN_PROGRESS)
+# ⏳ Sprint 4: Frontend Components (PENDING)
+#
+# Total: 24 sprints
+# Completed: 2 | In Progress: 1 | Pending: 21
+```
+
+### Fixing a Bug
+
+```bash
+autoflow fix "Login button not working on mobile"
+
+# Output:
+# 🐛 Bug Investigation
+#
+# Creating bugfix worktree...
+#   ✓ Worktree created: ../sprint-900 (port 12000)
+#
+# Running investigation...
+#   ✓ Root cause identified: Missing CSS media queries
+#   ✓ Fix implemented
+#   ✓ Tests created
+#
+# Next steps:
+#   1. Review: cd ../sprint-900
+#   2. Test: npm test
+#   3. Merge: autoflow worktree merge sprint-900
+```
+
+### Adding a Feature
+
+```bash
+autoflow add "Add real-time notifications using WebSockets"
+
+# Output:
+# 🔍 Analyzing codebase...
+#   Detected: React + Node.js + PostgreSQL
+#
+# 🤖 Generating feature sprints...
+#   Generated 4 new sprints:
+#     Sprint 25: WebSocket server setup
+#     Sprint 26: Notification data models
+#     Sprint 27: Frontend WebSocket client
+#     Sprint 28: Notification UI components
+#
+# ✓ Added to SPRINTS.yml
+#
+# Run: autoflow start --sprint 25
+```
 
 ## Development
 
-```bash
-# Run tests
-cargo test --all
+### Building from Source
 
+```bash
 # Build debug version
 cargo build
 
+# Build release version
+cargo build --release
+
 # Run from source
 cargo run -- --help
+
+# Run tests
+cargo test --all
 
 # Watch mode (requires cargo-watch)
 cargo watch -x 'run -- status'
 ```
 
-## Testing
+### Testing
 
 ```bash
 # Unit tests
@@ -113,75 +299,67 @@ cargo test --test '*'
 
 # Specific crate
 cargo test -p autoflow-data
+
+# With output
+cargo test -- --nocapture
 ```
 
-## Commands
+## Implementation Status
 
-### Project Management
-- `autoflow init` - Initialize new project
-- `autoflow status` - Show sprint progress
-- `autoflow analyze` - Analyze existing codebase
+✅ **Phase 1-6: COMPLETE**
+- Full TDD pipeline automation
+- Git worktree isolation
+- Autonomous bug fixing
+- Feature addition to existing code
+- Quality gates & validation
+- MCP server integration
 
-### Development
-- `autoflow start` - Start autonomous development
-- `autoflow start --parallel` - Execute sprints in parallel
-- `autoflow start --sprint=5` - Run specific sprint
+⏳ **Phase 7: Enhancement (Upcoming)**
+- Progress bars with `indicatif`
+- Interactive modes (`-i` flag)
+- `autoflow doctor` diagnostics
+- Performance optimizations
+- Comprehensive test suite
 
-### Features & Bugs
-- `autoflow add "description"` - Add new feature
-- `autoflow fix "description"` - Fix bug autonomously
+## Troubleshooting
 
-### Worktrees
-- `autoflow worktree list` - List all worktrees
-- `autoflow worktree merge <branch>` - Merge worktree
-- `autoflow worktree delete <branch>` - Delete worktree
+**Common Issues**:
 
-### Environment
-- `autoflow env start` - Start Docker containers
-- `autoflow env stop` - Stop containers
-- `autoflow env health` - Check health
+```bash
+# Command not found
+source ~/.bashrc
 
-### Quality
-- `autoflow validate --infrastructure` - Check infrastructure
-- `autoflow validate --integration` - Check integration
-- `autoflow validate --fix` - Auto-fix issues
+# Project not initialized
+autoflow init
 
-## Roadmap
+# Agent missing
+./scripts/install.sh
 
-### Phase 1: Foundation (Weeks 1-2) ✅
-- [x] Cargo workspace setup
-- [x] Core data structures
-- [x] CLI skeleton
-- [ ] Install script
-- [ ] Agent directory setup
+# Sprint blocked
+autoflow rollback --sprint <id>
 
-### Phase 2: Orchestrator (Weeks 3-4)
-- [ ] State machine implementation
-- [ ] Phase transitions
-- [ ] Agent executor
-- [ ] Sprint runner
+# Worktree conflicts
+autoflow worktree delete <name> --force
+```
 
-### Phase 3: Quality Gates (Weeks 5-6)
-- [ ] Schema validation
-- [ ] Format validation
-- [ ] Blocker detection
-- [ ] Auto-fix logic
-
-### Phase 4: Git & Worktrees (Weeks 7-8)
-- [ ] Worktree manager
-- [ ] Branch operations
-- [ ] Merge logic
-- [ ] Rollback support
-
-### Phase 5: Polish (Weeks 9-10)
-- [ ] Progress bars
-- [ ] Better error messages
-- [ ] Documentation
-- [ ] Examples
+See **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** for complete guide.
 
 ## Contributing
 
-Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
+
+See the code quality guidelines:
+- Follow SOLID principles
+- Keep functions < 50 lines
+- Write descriptive error messages
+- Add doc comments for public APIs
+- Test coverage > 70%
 
 ## License
 
@@ -190,9 +368,11 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## Acknowledgments
 
 - Built with [Rust](https://www.rust-lang.org/)
-- Powered by [Claude Code](https://claude.com/claude-code)
+- Powered by [Claude CLI](https://claude.com/cli)
 - Inspired by TDD best practices
 
 ---
 
-**Built with ❤️ by the AutoFlow team**
+**Built with ❤️  by the AutoFlow community**
+
+[Documentation](USER_GUIDE.md) | [Troubleshooting](TROUBLESHOOTING.md) | [Configuration](CONFIGURATION.md) | [MCP Servers](MCP_SERVERS.md) | [Architecture](ARCHITECTURE.md)

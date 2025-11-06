@@ -11,16 +11,118 @@ pub async fn run(parallel: bool, sprint: Option<u32>) -> anyhow::Result<()> {
     let sprints_path = ".autoflow/SPRINTS.yml";
     if !Path::new(sprints_path).exists() {
         bail!(
-            "{}\nRun {} first",
+            "{}\nRun {} or {} first",
             "Project not initialized.".red(),
-            "autoflow init".bright_blue()
+            "autoflow init".bright_blue(),
+            "autoflow create".bright_blue()
         );
     }
 
     // Load sprints
-    println!("\n{}", "Loading sprints...".bright_cyan());
+    println!("\n{}", "Checking project status...".bright_cyan());
     let mut sprints_data = SprintsYaml::load(sprints_path)
         .context("Failed to load SPRINTS.yml")?;
+
+    // Check if sprints are empty and IDEA.md exists - offer to generate
+    if sprints_data.sprints.is_empty() {
+        println!("{}", "No sprints found in SPRINTS.yml".yellow());
+
+        if Path::new("IDEA.md").exists() {
+            println!("{}", "Found IDEA.md - generating project setup...".bright_cyan());
+            println!();
+
+            // Check if docs exist
+            let docs_exist = Path::new(".autoflow/docs/BUILD_SPEC.md").exists();
+
+            if !docs_exist {
+                println!("{}", "📚 Generating project documentation...".bright_cyan());
+                println!("  Spawning make-docs agent...");
+
+                let idea_content = std::fs::read_to_string("IDEA.md")?;
+                let docs_context = format!(r#"Generate comprehensive project documentation from this idea:
+
+{}
+
+Create the following files in .autoflow/docs/:
+1. .autoflow/docs/BUILD_SPEC.md - Detailed technical specification
+2. .autoflow/docs/ARCHITECTURE.md - System architecture and design
+3. .autoflow/docs/API_SPEC.md - API endpoints and data models (if backend)
+4. .autoflow/docs/UI_SPEC.md - UI/UX specifications and wireframes (if frontend)
+
+IMPORTANT: All documentation files MUST be created in the .autoflow/docs/ directory, NOT in the project root.
+"#, idea_content);
+
+                match autoflow_agents::execute_agent("make-docs", &docs_context, 15).await {
+                    Ok(result) if result.success => {
+                        println!("  {} Documentation generated", "✓".green());
+                    }
+                    _ => {
+                        bail!("Failed to generate documentation. Please run 'autoflow create' instead.");
+                    }
+                }
+                println!();
+            }
+
+            // Generate sprints from docs
+            println!("{}", "📋 Generating sprint plan...".bright_cyan());
+            println!("  Spawning make-sprints agent...");
+
+            let build_spec = std::fs::read_to_string(".autoflow/docs/BUILD_SPEC.md").unwrap_or_default();
+            let architecture = std::fs::read_to_string(".autoflow/docs/ARCHITECTURE.md").unwrap_or_default();
+            let api_spec = std::fs::read_to_string(".autoflow/docs/API_SPEC.md").unwrap_or_default();
+            let ui_spec = std::fs::read_to_string(".autoflow/docs/UI_SPEC.md").unwrap_or_default();
+
+            let sprints_context = format!(r#"Generate a complete sprint plan from the following project documentation:
+
+# BUILD_SPEC.md
+{}
+
+# ARCHITECTURE.md
+{}
+
+# API_SPEC.md
+{}
+
+# UI_SPEC.md
+{}
+
+IMPORTANT:
+1. Read the documentation above carefully
+2. Break down the features into logical sprints
+3. Each sprint task should LINK to the documentation section it implements
+4. Follow TDD workflow: Tests → Implementation → Review
+5. Output ONLY raw YAML - no markdown fences, no explanations
+"#, build_spec, architecture, api_spec, ui_spec);
+
+            match autoflow_agents::execute_agent("make-sprints", &sprints_context, 20).await {
+                Ok(result) if result.success => {
+                    println!("  {} Sprint plan generated", "✓".green());
+
+                    // Save sprints
+                    let yaml_content = autoflow_utils::extract_yaml_from_output(&result.output);
+                    std::fs::write(sprints_path, yaml_content)?;
+                    println!("  {} Saved to {}", "✓".green(), sprints_path.bright_blue());
+
+                    // Reload sprints
+                    sprints_data = SprintsYaml::load(sprints_path)?;
+                }
+                _ => {
+                    bail!("Failed to generate sprints. Please run 'autoflow create' instead.");
+                }
+            }
+            println!();
+        } else {
+            bail!(
+                "{}\n{}\n\nRun one of:\n  {} - If you have IDEA.md\n  {} - Manual setup",
+                "No sprints found and no IDEA.md".red(),
+                "Cannot continue without project requirements.".red(),
+                "autoflow create".bright_blue(),
+                "autoflow init".bright_blue()
+            );
+        }
+    }
+
+    println!("{}", "Loading sprints...".bright_cyan());
 
     // Filter sprints based on flags - get indices instead of refs
     let sprint_indices: Vec<usize> = if let Some(sprint_id) = sprint {
