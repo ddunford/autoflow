@@ -3,7 +3,7 @@ use autoflow_agents::execute_agent;
 use autoflow_utils::{extract_yaml_from_output, Paths};
 use colored::*;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub async fn run(project_name: Option<String>, idea_file: Option<String>) -> Result<()> {
     println!("{}", "🚀 Creating new AutoFlow project...".bright_cyan().bold());
@@ -221,7 +221,36 @@ To be determined during implementation.
     let deployment = fs::read_to_string(".autoflow/docs/DEPLOYMENT.md").unwrap_or_default();
     let integration_guide = fs::read_to_string(".autoflow/INTEGRATION_GUIDE.md").unwrap_or_default();
 
+    // Load JSON schema
+    let home = std::env::var("HOME").expect("HOME environment variable not set");
+    let schema_path = PathBuf::from(home).join(".autoflow/schemas/sprints.schema.json");
+    let json_schema = fs::read_to_string(&schema_path).unwrap_or_else(|_| {
+        eprintln!("Warning: Could not load schema from {:?}", schema_path);
+        String::from("{}")
+    });
+
     let sprints_context = format!(r#"Generate a complete sprint plan from the following project documentation:
+
+# JSON SCHEMA (CRITICAL - MUST FOLLOW EXACTLY)
+
+Your output MUST validate against this JSON schema:
+
+```json
+{}
+```
+
+IMPORTANT SCHEMA REQUIREMENTS:
+- All required fields MUST be present
+- All enum values must match EXACTLY (case-sensitive, use SCREAMING_SNAKE_CASE)
+- Valid task types: IMPLEMENTATION, DOCUMENTATION, TEST, INFRASTRUCTURE, REFACTOR, BUGFIX
+- Valid workflow types: IMPLEMENTATION, DOCUMENTATION, TEST, INFRASTRUCTURE, REFACTOR
+- Valid sprint statuses: PENDING, WRITE_UNIT_TESTS, WRITE_CODE, CODE_REVIEW, REVIEW_FIX, RUN_UNIT_TESTS, UNIT_FIX, WRITE_E2E_TESTS, RUN_E2E_TESTS, E2E_FIX, COMPLETE, DONE, BLOCKED
+- All sprints must start with status: PENDING
+- Include last_updated timestamp in ISO 8601 format
+
+# PROJECT DOCUMENTATION
+
+Generate a complete sprint plan from the following project documentation:
 
 # BUILD_SPEC.md
 {}
@@ -265,7 +294,7 @@ IMPORTANT:
 6. Output ONLY raw YAML - no markdown fences, no explanations
 
 The agent definition already contains the full YAML format. Just output the actual YAML content.
-"#, build_spec, architecture, api_spec, ui_spec, data_model, testing_strategy, error_handling, state_management, security, deployment, integration_guide);
+"#, json_schema, build_spec, architecture, api_spec, ui_spec, data_model, testing_strategy, error_handling, state_management, security, deployment, integration_guide);
 
     match execute_agent("make-sprints", &sprints_context, 20, None).await {
         Ok(result) => {

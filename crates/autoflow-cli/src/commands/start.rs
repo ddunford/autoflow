@@ -3,7 +3,7 @@ use autoflow_core::Orchestrator;
 use autoflow_data::{SprintsYaml, SprintStatus};
 use autoflow_utils::{check_for_updates, should_check_for_updates, prompt_and_update, update_check_timestamp};
 use colored::*;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub async fn run(parallel: bool, sprint: Option<u32>) -> anyhow::Result<()> {
     println!("{}", "🚀 Starting AutoFlow...".bright_cyan().bold());
@@ -206,7 +206,36 @@ IMPORTANT: All documentation files MUST be created in the .autoflow/docs/ direct
             let security = std::fs::read_to_string(".autoflow/docs/SECURITY.md").unwrap_or_default();
             let deployment = std::fs::read_to_string(".autoflow/docs/DEPLOYMENT.md").unwrap_or_default();
 
+            // Load JSON schema
+            let home = std::env::var("HOME").expect("HOME environment variable not set");
+            let schema_path = PathBuf::from(home).join(".autoflow/schemas/sprints.schema.json");
+            let json_schema = std::fs::read_to_string(&schema_path).unwrap_or_else(|_| {
+                eprintln!("Warning: Could not load schema from {:?}", schema_path);
+                String::from("{}")
+            });
+
             let sprints_context = format!(r#"Generate a complete sprint plan from the following project documentation:
+
+# JSON SCHEMA (CRITICAL - MUST FOLLOW EXACTLY)
+
+Your output MUST validate against this JSON schema:
+
+```json
+{}
+```
+
+IMPORTANT SCHEMA REQUIREMENTS:
+- All required fields MUST be present
+- All enum values must match EXACTLY (case-sensitive, use SCREAMING_SNAKE_CASE)
+- Valid task types: IMPLEMENTATION, DOCUMENTATION, TEST, INFRASTRUCTURE, REFACTOR, BUGFIX
+- Valid workflow types: IMPLEMENTATION, DOCUMENTATION, TEST, INFRASTRUCTURE, REFACTOR
+- Valid sprint statuses: PENDING, WRITE_UNIT_TESTS, WRITE_CODE, CODE_REVIEW, REVIEW_FIX, RUN_UNIT_TESTS, UNIT_FIX, WRITE_E2E_TESTS, RUN_E2E_TESTS, E2E_FIX, COMPLETE, DONE, BLOCKED
+- All sprints must start with status: PENDING
+- Include last_updated timestamp in ISO 8601 format
+
+# PROJECT DOCUMENTATION
+
+Generate a complete sprint plan from the following project documentation:
 
 # BUILD_SPEC.md
 {}
@@ -245,7 +274,7 @@ IMPORTANT:
 4. Follow TDD workflow: Tests → Implementation → Review
 5. Reference specific sections from the docs (e.g., "See DATA_MODEL.md#UserSchema")
 6. Output ONLY raw YAML - no markdown fences, no explanations
-"#, build_spec, architecture, api_spec, ui_spec, data_model, testing_strategy, error_handling, state_management, security, deployment);
+"#, json_schema, build_spec, architecture, api_spec, ui_spec, data_model, testing_strategy, error_handling, state_management, security, deployment);
 
             // Retry loop for sprint generation with validation
             let max_retries = 2;
@@ -260,7 +289,13 @@ IMPORTANT:
                     // First retry: Try focused fix if file exists
                     println!("  {} Attempting focused fix...", "→".yellow());
                     ("make-sprints", format!(
-                        r#"VALIDATION ERROR FOUND:
+                        r#"JSON SCHEMA (YOUR OUTPUT MUST VALIDATE AGAINST THIS):
+
+```json
+{}
+```
+
+VALIDATION ERROR FOUND:
 {}
 
 TASK: Fix the SPRINTS.yml file at `.autoflow/SPRINTS.yml`
@@ -277,6 +312,7 @@ Common fixes:
 - Fix YAML syntax errors (quotes, indentation)
 
 Only fix what's broken - preserve all existing content."#,
+                        json_schema,
                         last_error
                     ))
                 } else {
