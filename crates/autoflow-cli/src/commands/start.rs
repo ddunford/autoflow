@@ -58,10 +58,57 @@ pub async fn run(parallel: bool, sprint: Option<u32>) -> anyhow::Result<()> {
         }
     }
 
-    // Load sprints
+    // Load sprints with retry/fix logic
     println!("\n{}", "Checking project status...".bright_cyan());
-    let mut sprints_data = SprintsYaml::load(sprints_path)
-        .context("Failed to load SPRINTS.yml")?;
+    let mut sprints_data = match SprintsYaml::load(sprints_path) {
+        Ok(data) => data,
+        Err(e) => {
+            // SPRINTS.yml exists but is invalid - try to fix it
+            println!("  {} SPRINTS.yml validation failed: {}", "⚠".yellow(), e.to_string().yellow());
+            println!("  {} Attempting to fix validation errors...", "→".yellow());
+
+            let fix_context = format!(
+                r#"VALIDATION ERROR FOUND:
+{}
+
+TASK: Fix the SPRINTS.yml file at `.autoflow/SPRINTS.yml`
+
+The file exists but fails validation (likely due to schema updates).
+
+1. Read the existing file using the Read tool
+2. Identify and fix the validation errors
+3. Use the Write tool to save the corrected SPRINTS.yml
+
+Common fixes needed after schema updates:
+- Add missing 'type' field to tasks (IMPLEMENTATION, DOCUMENTATION, TEST, INFRASTRUCTURE, REFACTOR, BUGFIX)
+- Add missing 'workflow_type' field to sprints (IMPLEMENTATION, DOCUMENTATION, TEST, INFRASTRUCTURE, REFACTOR)
+- Add missing 'last_updated' field to project metadata (use current timestamp)
+- Fix enum values to match SCREAMING_SNAKE_CASE
+- Add missing required fields with sensible defaults
+
+Only fix what's broken - preserve all existing content and sprint progress."#,
+                e
+            );
+
+            match autoflow_agents::execute_agent("make-sprints", &fix_context, 20, None).await {
+                Ok(result) if result.success => {
+                    // Try loading again
+                    match SprintsYaml::load(sprints_path) {
+                        Ok(fixed_data) => {
+                            println!("  {} SPRINTS.yml fixed and validated", "✓".green());
+                            fixed_data
+                        }
+                        Err(e2) => {
+                            bail!("Failed to fix SPRINTS.yml: {}\n\nPlease manually fix the file or delete it and run 'autoflow create'", e2);
+                        }
+                    }
+                }
+                _ => {
+                    bail!("Failed to fix SPRINTS.yml automatically.\n\nOriginal error: {}\n\nPlease manually fix the file or delete it and run 'autoflow create'", e);
+                }
+            }
+        }
+    };
 
     // Check if sprints are empty and IDEA.md exists - offer to generate
     if sprints_data.sprints.is_empty() {
