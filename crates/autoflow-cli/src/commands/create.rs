@@ -129,6 +129,31 @@ Any specific requirements or constraints:
     super::init::run(None).await?;
     println!();
 
+    // 5.5. Create project-level Claude configuration
+    println!("{}", "🤖 Setting up Claude configuration...".bright_cyan());
+    fs::create_dir_all(".claude")?;
+
+    let claude_config = r#"# Claude Code Configuration
+
+## 🚫 NO REPORTS OR SUMMARIES
+
+**CRITICAL: Do NOT create any of these files:**
+- DEPLOYMENT_SUMMARY.md
+- SUMMARY.md, REPORT.md, README.md (unless explicitly required)
+- Any file with "summary" or "report" in the name
+
+**ONLY write:**
+1. Code/config files needed for functionality
+2. Files explicitly mentioned in deliverables
+3. Files required by acceptance criteria
+
+Your job is working code, not meta-documentation.
+"#;
+
+    fs::write(".claude/CLAUDE.md", claude_config)?;
+    println!("  {} Created .claude/CLAUDE.md with NO REPORTS rule", "✓".green());
+    println!();
+
     // 6. Generate comprehensive documentation
     println!("{}", "📚 Generating project documentation...".bright_cyan());
     println!("  Spawning make-docs agent...");
