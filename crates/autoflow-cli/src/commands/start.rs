@@ -58,32 +58,35 @@ pub async fn run(parallel: bool, sprint: Option<u32>) -> anyhow::Result<()> {
         }
     }
 
-    // Load sprints with retry/fix logic
+    // Load sprints with comprehensive validation to collect ALL errors
     println!("\n{}", "Checking project status...".bright_cyan());
-    let mut sprints_data = match SprintsYaml::load(sprints_path) {
-        Ok(data) => data,
-        Err(e) => {
-            // SPRINTS.yml exists but is invalid - try to fix it
-            println!("  {} SPRINTS.yml validation failed: {}", "⚠".yellow(), e.to_string().yellow());
-            println!("  {} Attempting to fix validation errors...", "→".yellow());
 
-            let fix_context = format!(
-                r#"VALIDATION ERROR FOUND:
+    // First, try comprehensive validation to collect ALL errors
+    let validation_errors = SprintsYaml::validate_all_errors(sprints_path);
+
+    let mut sprints_data = if let Err(all_errors) = validation_errors {
+        // SPRINTS.yml exists but has validation errors - try to fix ALL at once
+        println!("  {} SPRINTS.yml validation failed", "⚠".yellow());
+        println!("  {} Attempting to fix validation errors...", "→".yellow());
+
+        let fix_context = format!(
+            r#"VALIDATION ERRORS FOUND:
 {}
 
 TASK: Fix ALL validation errors in `.autoflow/SPRINTS.yml`
 
 The file exists but fails validation (likely due to schema updates).
 
-IMPORTANT: Fix ALL instances of missing fields throughout the entire file:
+IMPORTANT: Fix ALL instances of missing/incorrect fields throughout the entire file:
 - If 'last_updated' is missing from project → add it with current timestamp
 - If 'last_updated' is missing from ANY sprint → add to ALL sprints
 - If 'workflow_type' is missing from ANY sprint → add to ALL sprints (default: IMPLEMENTATION)
 - If 'type' is missing from ANY task → add to ALL tasks (default: IMPLEMENTATION)
+- Fix any enum values to match SCREAMING_SNAKE_CASE
 
 Steps:
 1. Read the existing file using the Read tool
-2. Identify ALL validation errors (check project, ALL sprints, ALL tasks)
+2. Review ALL the validation errors listed above
 3. Fix ALL occurrences at once:
    - Add missing 'type' field to EVERY task (IMPLEMENTATION, DOCUMENTATION, TEST, INFRASTRUCTURE, REFACTOR, BUGFIX)
    - Add missing 'workflow_type' field to EVERY sprint (IMPLEMENTATION, DOCUMENTATION, TEST, INFRASTRUCTURE, REFACTOR)
@@ -98,26 +101,31 @@ Example fixes:
 - Task missing type → add: type: IMPLEMENTATION
 
 Only fix what's broken - preserve all existing content and sprint progress."#,
-                e
-            );
+            all_errors
+        );
 
-            match autoflow_agents::execute_agent("make-sprints", &fix_context, 20, None).await {
-                Ok(result) if result.success => {
-                    // Try loading again
-                    match SprintsYaml::load(sprints_path) {
-                        Ok(fixed_data) => {
-                            println!("  {} SPRINTS.yml fixed and validated", "✓".green());
-                            fixed_data
-                        }
-                        Err(e2) => {
-                            bail!("Failed to fix SPRINTS.yml: {}\n\nPlease manually fix the file or delete it and run 'autoflow create'", e2);
-                        }
+        match autoflow_agents::execute_agent("make-sprints", &fix_context, 20, None).await {
+            Ok(result) if result.success => {
+                // Try loading again
+                match SprintsYaml::load(sprints_path) {
+                    Ok(fixed_data) => {
+                        println!("  {} SPRINTS.yml fixed and validated", "✓".green());
+                        fixed_data
+                    }
+                    Err(e2) => {
+                        bail!("Failed to fix SPRINTS.yml: {}\n\nPlease manually fix the file or delete it and run 'autoflow create'", e2);
                     }
                 }
-                _ => {
-                    bail!("Failed to fix SPRINTS.yml automatically.\n\nOriginal error: {}\n\nPlease manually fix the file or delete it and run 'autoflow create'", e);
-                }
             }
+            _ => {
+                bail!("Failed to fix SPRINTS.yml automatically.\n\nOriginal error: {}\n\nPlease manually fix the file or delete it and run 'autoflow create'", all_errors);
+            }
+        }
+    } else {
+        // Validation passed, load the file
+        match SprintsYaml::load(sprints_path) {
+            Ok(data) => data,
+            Err(e) => bail!("Failed to load SPRINTS.yml: {}", e),
         }
     };
 

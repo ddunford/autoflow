@@ -25,6 +25,71 @@ impl SprintsYaml {
         Ok(())
     }
 
+    /// Validate YAML content against the JSON schema and collect ALL errors
+    pub fn validate_all_errors<P: AsRef<Path>>(yaml_path: P) -> std::result::Result<(), String> {
+        // Read YAML file
+        let yaml_content = match fs::read_to_string(&yaml_path) {
+            Ok(content) => content,
+            Err(e) => return Err(format!("Failed to read YAML file: {}", e)),
+        };
+
+        // Parse YAML to JSON Value
+        let yaml_value: serde_yaml::Value = match serde_yaml::from_str(&yaml_content) {
+            Ok(value) => value,
+            Err(e) => return Err(format!("Failed to parse YAML: {}", e)),
+        };
+
+        // Convert YAML Value to JSON Value (jsonschema works with JSON)
+        let json_value: serde_json::Value = match serde_json::to_value(&yaml_value) {
+            Ok(value) => value,
+            Err(e) => return Err(format!("Failed to convert YAML to JSON: {}", e)),
+        };
+
+        // Load schema
+        let schema_path = "schemas/sprints.schema.json";
+        let schema_content = match fs::read_to_string(schema_path) {
+            Ok(content) => content,
+            Err(e) => return Err(format!("Failed to read schema file {}: {}", schema_path, e)),
+        };
+
+        let schema_json: serde_json::Value = match serde_json::from_str(&schema_content) {
+            Ok(schema) => schema,
+            Err(e) => return Err(format!("Failed to parse schema JSON: {}", e)),
+        };
+
+        // Compile schema
+        let compiled_schema = match jsonschema::JSONSchema::compile(&schema_json) {
+            Ok(schema) => schema,
+            Err(e) => return Err(format!("Failed to compile schema: {}", e)),
+        };
+
+        // Validate and collect ALL errors
+        let validation_result = compiled_schema.validate(&json_value);
+
+        match validation_result {
+            Ok(_) => Ok(()),
+            Err(errors) => {
+                // Collect all validation errors
+                let mut error_messages = Vec::new();
+                for (idx, error) in errors.enumerate() {
+                    let instance_path = error.instance_path.to_string();
+                    let location = if instance_path.is_empty() {
+                        "root".to_string()
+                    } else {
+                        instance_path.trim_start_matches('/').replace('/', ".")
+                    };
+                    error_messages.push(format!("{}. {} - {}", idx + 1, location, error));
+                }
+
+                Err(format!(
+                    "Found {} validation error(s):\n\n{}",
+                    error_messages.len(),
+                    error_messages.join("\n")
+                ))
+            }
+        }
+    }
+
     /// Validate and fix YAML content by adding missing required fields
     pub fn validate_and_fix(yaml_content: &str) -> Result<Self> {
         // First try to parse as-is
