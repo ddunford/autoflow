@@ -6,6 +6,7 @@ pub mod status;
 pub mod analyze;
 pub mod add;
 pub mod fix;
+pub mod pivot;
 pub mod rollback;
 pub mod worktree;
 pub mod validate;

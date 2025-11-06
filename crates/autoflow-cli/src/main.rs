@@ -87,6 +87,12 @@ enum Commands {
         playwright_headed: bool,
     },
 
+    /// Update documentation and regenerate sprints based on feedback
+    Pivot {
+        /// Feedback/instruction for updating documentation
+        instruction: String,
+    },
+
     /// Rollback sprint
     Rollback {
         /// Sprint ID to rollback (default: last sprint)
@@ -277,6 +283,9 @@ async fn main() -> anyhow::Result<()> {
             playwright_headed,
         } => {
             commands::fix::run(description, auto_fix, playwright_headed).await?;
+        }
+        Commands::Pivot { instruction } => {
+            commands::pivot::run(instruction).await?;
         }
         Commands::Rollback { sprint } => {
             commands::rollback::run(sprint).await?;

@@ -24,5 +24,6 @@ tracing-subscriber = { workspace = true }
 colored = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_yaml = { workspace = true }
 chrono = { workspace = true }
 autoflow-agents = { path = "../autoflow-agents" }

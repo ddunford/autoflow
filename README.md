@@ -214,6 +214,7 @@ autoflow analyze                        # Analyze codebase structure
 autoflow start [--parallel] [--sprint ID]  # Start autonomous development
 autoflow add "feature description"         # Add new feature
 autoflow fix "bug description"             # Investigate and fix bug
+autoflow pivot "instruction"               # Update docs and regenerate sprints
 autoflow rollback [--sprint ID]            # Reset sprint to PENDING
 ```
 
@@ -309,6 +310,53 @@ autoflow add "Add real-time notifications using WebSockets"
 #
 # Run: autoflow start --sprint 25
 ```
+
+### Refining Documentation (Pivot)
+
+```bash
+# After reviewing generated docs, you spot something wrong
+autoflow pivot "Add WebSocket support to the architecture - you forgot to include it"
+
+# Output:
+# 🔄 Pivoting project based on your feedback...
+#
+# 📖 Reading current documentation...
+#   ✓ Read 10 documentation files
+#
+# 📋 Saving current sprint states...
+#   ✓ Saved 24 sprint states
+#
+# 🤖 Updating documentation based on your feedback...
+#   Spawning make-docs agent...
+#   ✓ Documentation updated
+#
+# 📋 Regenerating sprint plan with updated documentation...
+#   Spawning make-sprints agent...
+#   ✓ Sprint plan regenerated
+#   ✓ Restored sprint states (kept 2 active/completed sprints)
+#   ✓ Saved to .autoflow/SPRINTS.yml
+#
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#   ✅ Pivot Complete!
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# 📝 What changed:
+#   • Documentation updated based on your feedback
+#   • Sprint plan regenerated from updated docs
+#   • Existing sprint states preserved where possible
+```
+
+**When to use `pivot`:**
+- Documentation missed a key requirement
+- Architecture needs adjustment before coding starts
+- API design changed after review
+- Database schema needs modification
+- Any time you catch an issue in the generated docs
+
+**Smart state preservation:**
+- Keeps completed sprints (`DONE`)
+- Keeps in-progress sprints (any phase in TDD pipeline)
+- Resets pending/blocked sprints to match new plan
 
 ## Development
 

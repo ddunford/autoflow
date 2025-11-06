@@ -31,6 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Pivot Command - Refine Documentation
+- **`autoflow pivot` command**: Update documentation and regenerate sprints based on feedback
+- **Smart state preservation**: Keeps completed and in-progress sprints when regenerating
+- **Full doc rewrite**: Reads all 10 documentation files and updates based on your instruction
+- **Sprint regeneration**: Automatically regenerates sprints from updated docs
+- **Use cases**: Fix missed requirements, adjust architecture, change API design, update database schema
+
 #### Auto-Update System
 - **Automatic Update Checks**: Checks for agent/skill updates on `autoflow start` and `autoflow init`
 - **Smart Update Detection**: Compares installed agents/skills with templates based on modification time
