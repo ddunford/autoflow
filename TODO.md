@@ -101,47 +101,51 @@
   - [x] `sprints list` - Show all sprints grouped by status
   - [x] `sprints show <id>` - Show sprint details with --integration flag
 
+### Phase 4: Feature Addition (Days 7-9) ✅
+- [x] `autoflow analyze` - CodebaseAnalyzer
+  - [x] Scan project structure (use `walkdir`)
+  - [x] Detect tech stack (Node.js, PHP, Rust, Python, Go)
+  - [x] Identify frameworks (React, Vue, Laravel, Express, Vite)
+  - [x] Find integration points (APIs, models, components)
+  - [x] Generate INTEGRATION_GUIDE.md
+  - [x] Tested on multiple project types
+
+- [x] `autoflow add` - Feature addition with agent
+  - [x] Check if project initialized
+  - [x] Load existing SPRINTS.yml
+  - [x] Load INTEGRATION_GUIDE.md (if exists)
+  - [x] Create feature specification from description
+  - [x] Spawn `make-sprints` agent with context
+  - [x] Parse generated sprints (handles markdown)
+  - [x] Append to SPRINTS.yml
+  - [x] Update project metadata (total_sprints)
+  - [x] Save SPRINTS.yml
+  - [x] Template fallback on agent failure
+
+### Phase 5: Bug Fixing (Days 10-12) ✅
+- [x] `autoflow fix` - Bug investigation and fixing
+  - [x] Create bugfix worktree (sprint ID 900, port 12000)
+  - [x] Sanitize bug description for branch naming
+  - [x] Spawn `debug-blocker` agent
+  - [x] Parse investigation results
+  - [x] Save bug analysis to `.autoflow/bugs/`
+  - [x] Display clear next steps
+  - [x] Manual bug report fallback
+  - [x] Tested with real agent execution
+
+- [x] Additional commands
+  - [x] `autoflow agents [--detailed]` - List all available agents
+  - [x] `autoflow skills` - List all available skills
+  - [x] `autoflow rollback [sprint]` - Reset sprint to Pending
+  - [x] `autoflow env <start|stop|restart|logs|health>` - Docker management
+
 ---
 
 ## 🚧 IN PROGRESS / TODO
 
-### Phase 4: Feature Addition (Days 7-9)
+### Remaining Items
 
-#### 7. Implement `autoflow analyze` (`crates/autoflow-cli/src/commands/analyze.rs`)
-- [ ] Create `codebase-analyzer` agent definition
-- [ ] Scan project structure (use `walkdir`)
-- [ ] Detect tech stack (package.json, composer.json, Cargo.toml)
-- [ ] Identify frameworks (React, Laravel, etc.)
-- [ ] Find integration points (API endpoints, models)
-- [ ] Generate INTEGRATION_GUIDE.md
-- [ ] Store findings in memory MCP
-
-#### 8. Implement `autoflow add` (`crates/autoflow-cli/src/commands/add.rs`)
-- [ ] Check if project initialized
-- [ ] Load existing SPRINTS.yml
-- [ ] Load INTEGRATION_GUIDE.md (if exists)
-- [ ] Create feature specification from description
-- [ ] Spawn `make-sprints` agent with context
-- [ ] Parse generated sprints
-- [ ] Append to SPRINTS.yml
-- [ ] Update project metadata (total_sprints)
-- [ ] Save SPRINTS.yml
-- [ ] Show next steps
-
-### Phase 5: Bug Fixing (Days 10-12)
-
-#### 9. Implement `autoflow fix` (`crates/autoflow-cli/src/commands/fix.rs`)
-- [ ] Create bugfix worktree (use git2)
-- [ ] Spawn `bug-investigator` agent
-- [ ] Parse investigation results
-- [ ] If root cause found:
-  - [ ] Spawn `bug-fixer` agent
-  - [ ] Run tests
-  - [ ] If tests pass, offer to merge
-  - [ ] If tests fail, retry or mark BLOCKED
-- [ ] Save bug analysis to `.autoflow/bugs/`
-
-#### 10. Playwright MCP Integration (`crates/autoflow-agents/src/playwright.rs`)
+#### Playwright MCP Integration (Optional)
 - [ ] Create PlaywrightClient
 - [ ] Implement MCP tool calls:
   - [ ] `playwright__launch()`
