@@ -28,27 +28,9 @@ pub async fn run(parallel: bool, sprint: Option<u32>) -> anyhow::Result<()> {
     // Check if project is initialized
     let sprints_path = ".autoflow/SPRINTS.yml";
 
-    // If SPRINTS.yml doesn't exist but IDEA.md does, initialize with empty sprints
+    // If SPRINTS.yml doesn't exist, check for IDEA.md
     if !Path::new(sprints_path).exists() {
-        if Path::new("IDEA.md").exists() {
-            println!("\n{}", "Initializing project from IDEA.md...".bright_cyan());
-            std::fs::create_dir_all(".autoflow/docs")?;
-
-            let current_dir = std::env::current_dir()?;
-            let project_name = current_dir
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("Project")
-                .to_string();
-
-            let empty_sprints = format!(
-                "project:\n  name: \"{}\"\n  total_sprints: 0\n  current_sprint: null\n  last_updated: \"{}\"
-\nsprints: []",
-                project_name,
-                chrono::Utc::now().to_rfc3339()
-            );
-            std::fs::write(sprints_path, empty_sprints)?;
-        } else {
+        if !Path::new("IDEA.md").exists() {
             bail!(
                 "{}\nRun {} or {} first",
                 "Project not initialized.".red(),
@@ -56,15 +38,41 @@ pub async fn run(parallel: bool, sprint: Option<u32>) -> anyhow::Result<()> {
                 "autoflow create".bright_blue()
             );
         }
+        // If IDEA.md exists, we'll generate SPRINTS.yml below (skip to generation logic)
+        println!("\n{}", "Initializing project from IDEA.md...".bright_cyan());
+        std::fs::create_dir_all(".autoflow/docs")?;
     }
 
     // Load sprints with comprehensive validation to collect ALL errors
     println!("\n{}", "Checking project status...".bright_cyan());
 
-    // First, try comprehensive validation to collect ALL errors
-    let validation_errors = SprintsYaml::validate_all_errors(sprints_path);
+    // Skip validation if file doesn't exist - will be generated below
+    let mut sprints_data = if !Path::new(sprints_path).exists() {
+        // File doesn't exist, will be generated from IDEA.md below
+        // Create minimal structure to reach generation logic
+        let current_dir = std::env::current_dir()?;
+        let project_name = current_dir
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("Project")
+            .to_string();
 
-    let mut sprints_data = if let Err(all_errors) = validation_errors {
+        SprintsYaml {
+            project: autoflow_data::ProjectMetadata {
+                name: project_name,
+                version: "0.1.0".to_string(),
+                description: "Generated from IDEA.md".to_string(),
+                total_sprints: 0,
+                current_sprint: None,
+                last_updated: chrono::Utc::now(),
+            },
+            sprints: vec![],
+        }
+    } else {
+        // File exists, validate and fix if needed
+        let validation_errors = SprintsYaml::validate_all_errors(sprints_path);
+
+        if let Err(all_errors) = validation_errors {
         // SPRINTS.yml exists but has validation errors - try to fix ALL at once
         println!("  {} SPRINTS.yml validation failed", "⚠".yellow());
         println!("  {} Attempting to fix validation errors...", "→".yellow());
@@ -121,11 +129,12 @@ Only fix what's broken - preserve all existing content and sprint progress."#,
                 bail!("Failed to fix SPRINTS.yml automatically.\n\nOriginal error: {}\n\nPlease manually fix the file or delete it and run 'autoflow create'", all_errors);
             }
         }
-    } else {
-        // Validation passed, load the file
-        match SprintsYaml::load(sprints_path) {
-            Ok(data) => data,
-            Err(e) => bail!("Failed to load SPRINTS.yml: {}", e),
+        } else {
+            // Validation passed, load the file
+            match SprintsYaml::load(sprints_path) {
+                Ok(data) => data,
+                Err(e) => bail!("Failed to load SPRINTS.yml: {}", e),
+            }
         }
     };
 
