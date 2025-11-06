@@ -54,6 +54,235 @@ The installer automatically sets up all agents, skills, and configuration. Just 
 - **Docker & Docker Compose** (optional, for dev environments)
 - **Git** 2.20+ (for worktree support)
 
+### Setup Guides
+
+#### Linux Setup
+
+**1. Install Rust**
+```bash
+# Install Rust via rustup
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Restart your terminal or run:
+source $HOME/.cargo/env
+
+# Verify installation
+rustc --version
+cargo --version
+```
+
+**2. Install Claude CLI**
+```bash
+# Follow the official Claude CLI installation guide
+# Visit: https://claude.com/cli
+
+# After installation, verify:
+claude --version
+```
+
+**3. Install Docker & Docker Compose (Optional)**
+
+**Ubuntu/Debian:**
+```bash
+# Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# Add your user to docker group
+sudo usermod -aG docker $USER
+newgrp docker
+
+# Install Docker Compose
+sudo apt-get update
+sudo apt-get install docker-compose-plugin
+
+# Verify
+docker --version
+docker compose version
+```
+
+**Fedora/RHEL:**
+```bash
+# Install Docker
+sudo dnf install docker docker-compose
+
+# Start and enable Docker
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Add user to docker group
+sudo usermod -aG docker $USER
+newgrp docker
+
+# Verify
+docker --version
+docker compose version
+```
+
+**Arch Linux:**
+```bash
+# Install Docker
+sudo pacman -S docker docker-compose
+
+# Start and enable Docker
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Add user to docker group
+sudo usermod -aG docker $USER
+newgrp docker
+
+# Verify
+docker --version
+docker compose version
+```
+
+**4. Install Git (if not already installed)**
+```bash
+# Ubuntu/Debian
+sudo apt-get update && sudo apt-get install git
+
+# Fedora/RHEL
+sudo dnf install git
+
+# Arch Linux
+sudo pacman -S git
+
+# Verify
+git --version
+```
+
+**5. Install AutoFlow**
+```bash
+# Clone repository
+git clone https://github.com/ddunford/autoflow
+cd autoflow
+
+# Run installer
+./scripts/install.sh
+
+# Restart terminal or run:
+source ~/.bashrc  # or ~/.zshrc if using zsh
+
+# Verify installation
+autoflow --version
+```
+
+#### macOS Setup
+
+**1. Install Homebrew (if not already installed)**
+```bash
+# Install Homebrew
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Follow the post-installation instructions to add Homebrew to PATH
+# Usually something like:
+echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# Verify
+brew --version
+```
+
+**2. Install Rust**
+```bash
+# Install Rust via rustup
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Restart your terminal or run:
+source $HOME/.cargo/env
+
+# Verify installation
+rustc --version
+cargo --version
+```
+
+**3. Install Claude CLI**
+```bash
+# Follow the official Claude CLI installation guide
+# Visit: https://claude.com/cli
+
+# After installation, verify:
+claude --version
+```
+
+**4. Install Docker Desktop (Optional)**
+```bash
+# Option 1: Download from Docker website
+# Visit: https://www.docker.com/products/docker-desktop
+
+# Option 2: Install via Homebrew
+brew install --cask docker
+
+# Start Docker Desktop from Applications
+# Wait for Docker to start, then verify:
+docker --version
+docker compose version
+```
+
+**5. Verify Git (usually pre-installed)**
+```bash
+# Check if Git is installed
+git --version
+
+# If not installed, install via Homebrew
+brew install git
+```
+
+**6. Install AutoFlow**
+```bash
+# Clone repository
+git clone https://github.com/ddunford/autoflow
+cd autoflow
+
+# Run installer
+./scripts/install.sh
+
+# Restart terminal or run:
+source ~/.zshrc  # or ~/.bash_profile if using bash
+
+# Verify installation
+autoflow --version
+```
+
+### Troubleshooting Setup
+
+**Rust not found after installation:**
+```bash
+# Make sure Cargo bin is in your PATH
+echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc  # or ~/.zshrc
+source ~/.bashrc
+```
+
+**Claude CLI not found:**
+```bash
+# Check installation location and add to PATH if needed
+which claude
+
+# If not found, reinstall from https://claude.com/cli
+```
+
+**Docker permission denied:**
+```bash
+# Linux: Make sure you're in the docker group
+sudo usermod -aG docker $USER
+newgrp docker
+
+# macOS: Make sure Docker Desktop is running
+open -a Docker
+```
+
+**AutoFlow command not found:**
+```bash
+# Make sure ~/.autoflow/bin is in your PATH
+echo 'export PATH="$HOME/.autoflow/bin:$PATH"' >> ~/.bashrc  # or ~/.zshrc
+source ~/.bashrc
+
+# Or run the installer again
+cd /path/to/autoflow
+./scripts/install.sh
+```
+
 ### Installation
 
 ```bash
