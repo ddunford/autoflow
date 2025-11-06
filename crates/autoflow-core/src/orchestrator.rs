@@ -1,4 +1,5 @@
 use autoflow_data::{AutoFlowError, Result, Sprint, SprintStatus};
+use crate::workflow::get_workflow_definition;
 use chrono::Utc;
 
 pub struct Orchestrator {
@@ -58,36 +59,55 @@ impl Orchestrator {
             match phase_result {
                 Ok(should_advance) => {
                     if should_advance {
-                        // Phase succeeded, advance to next status
+                        // Phase succeeded, advance to next status using workflow
                         let current_status = sprint.status;
 
                         // Reset retry count for this status
                         retry_count.insert(current_status, 0);
 
-                        sprint.advance()?;
+                        // Use workflow to determine next phase
+                        let workflow = get_workflow_definition(sprint.workflow_type);
+                        if let Some(next_phase) = workflow.next_phase(current_status) {
+                            sprint.status = next_phase.status;
+                            sprint.last_updated = Utc::now();
 
-                        tracing::info!(
-                            "Sprint {} advanced from {:?} to {:?}",
-                            sprint.id,
-                            current_status,
-                            sprint.status
-                        );
+                            tracing::info!(
+                                "Sprint {} advanced from {:?} to {:?} (workflow: {:?})",
+                                sprint.id,
+                                current_status,
+                                sprint.status,
+                                sprint.workflow_type
+                            );
+                        } else {
+                            tracing::warn!(
+                                "Sprint {} at {:?} has no next phase in workflow",
+                                sprint.id,
+                                current_status
+                            );
+                        }
                     } else {
                         // Phase needs retry (e.g., tests failed)
                         let current_status = sprint.status;
                         let count = retry_count.entry(current_status).or_insert(0);
                         *count += 1;
 
+                        // Get workflow to check max retries
+                        let workflow = get_workflow_definition(sprint.workflow_type);
+                        let max_retries = workflow
+                            .get_phase(current_status)
+                            .map(|p| p.max_retries)
+                            .unwrap_or(1);
+
                         tracing::warn!(
                             "Sprint {} status {:?} needs retry ({}/{})",
                             sprint.id,
                             current_status,
                             count,
-                            current_status.max_retries()
+                            max_retries
                         );
 
                         // Check if we've exceeded max retries
-                        if *count >= current_status.max_retries() {
+                        if *count >= max_retries {
                             tracing::error!(
                                 "Sprint {} exceeded max retries for {:?}, marking as BLOCKED",
                                 sprint.id,
@@ -97,10 +117,15 @@ impl Orchestrator {
                             sprint.blocked_count = Some(*count);
                             sprint.last_updated = Utc::now();
                         } else {
-                            // Move to fix status if available
-                            if let Some(fix_status) = self.get_fix_status(current_status) {
-                                sprint.status = fix_status;
+                            // Move to fix status if available (from workflow)
+                            if let Some(fix_phase) = workflow.get_fix_phase(current_status) {
+                                sprint.status = fix_phase.status;
                                 sprint.last_updated = Utc::now();
+                                tracing::info!(
+                                    "Sprint {} moving to fix phase {:?}",
+                                    sprint.id,
+                                    fix_phase.status
+                                );
                             }
                         }
                     }
@@ -113,7 +138,14 @@ impl Orchestrator {
                     let count = retry_count.entry(current_status).or_insert(0);
                     *count += 1;
 
-                    if *count >= current_status.max_retries() {
+                    // Get workflow to check max retries
+                    let workflow = get_workflow_definition(sprint.workflow_type);
+                    let max_retries = workflow
+                        .get_phase(current_status)
+                        .map(|p| p.max_retries)
+                        .unwrap_or(1);
+
+                    if *count >= max_retries {
                         sprint.status = SprintStatus::Blocked;
                         sprint.blocked_count = Some(*count);
                         sprint.last_updated = Utc::now();
@@ -143,27 +175,50 @@ impl Orchestrator {
     /// Execute a phase based on sprint status
     /// Returns Ok(true) if should advance, Ok(false) if should retry, Err if failed
     async fn execute_phase(&self, sprint: &Sprint) -> Result<bool> {
-        use autoflow_agents::{build_agent_context, execute_agent, get_agent_for_status};
+        use autoflow_agents::{build_agent_context, execute_agent};
+
+        // Get workflow definition for this sprint
+        let workflow = get_workflow_definition(sprint.workflow_type);
+
+        // Get the current phase from workflow
+        let phase = workflow.get_phase(sprint.status).ok_or_else(|| {
+            AutoFlowError::ValidationError(format!(
+                "No phase definition for status {:?} in workflow {:?}",
+                sprint.status, sprint.workflow_type
+            ))
+        })?;
 
         // Auto-advance Pending sprints without executing any agent
         // Pending means the sprint is planned but not started yet
         if sprint.status == SprintStatus::Pending {
             tracing::info!(
-                "Sprint {} is Pending - auto-advancing to WriteUnitTests",
-                sprint.id
+                "Sprint {} is Pending - auto-advancing to next phase (workflow: {:?})",
+                sprint.id,
+                sprint.workflow_type
             );
             return Ok(true);
         }
 
-        let agent_name = get_agent_for_status(&sprint.status);
+        // Skip execution if agent is "none"
+        if phase.agent == "none" {
+            tracing::info!(
+                "Sprint {} status {:?} has no agent - auto-advancing",
+                sprint.id,
+                sprint.status
+            );
+            return Ok(true);
+        }
+
+        let agent_name = phase.agent;
         let context = build_agent_context(sprint);
-        let max_turns = self.get_max_turns_for_status(sprint.status);
+        let max_turns = phase.max_turns;
 
         tracing::info!(
-            "Executing agent '{}' for sprint {} status {:?}",
+            "Executing agent '{}' for sprint {} status {:?} (workflow: {:?})",
             agent_name,
             sprint.id,
-            sprint.status
+            sprint.status,
+            sprint.workflow_type
         );
 
         // Execute agent
@@ -200,29 +255,6 @@ impl Orchestrator {
                 result.error
             );
             Ok(false) // Retry
-        }
-    }
-
-    /// Get the fix status for a given status (if applicable)
-    fn get_fix_status(&self, status: SprintStatus) -> Option<SprintStatus> {
-        match status {
-            SprintStatus::CodeReview => Some(SprintStatus::ReviewFix),
-            SprintStatus::RunUnitTests => Some(SprintStatus::UnitFix),
-            SprintStatus::RunE2eTests => Some(SprintStatus::E2eFix),
-            _ => None,
-        }
-    }
-
-    /// Get max turns for agent based on status
-    fn get_max_turns_for_status(&self, status: SprintStatus) -> u32 {
-        match status {
-            SprintStatus::WriteCode => 10,
-            SprintStatus::CodeReview => 5,
-            SprintStatus::ReviewFix => 8,
-            SprintStatus::UnitFix => 8,
-            SprintStatus::E2eFix => 10,
-            SprintStatus::WriteUnitTests | SprintStatus::WriteE2eTests => 6,
-            _ => 5,
         }
     }
 
