@@ -13,6 +13,7 @@ path = "src/main.rs"
 autoflow-data = { path = "../autoflow-data" }
 autoflow-core = { path = "../autoflow-core" }
 autoflow-quality = { path = "../autoflow-quality" }
+autoflow-git = { path = "../autoflow-git" }
 autoflow-utils = { path = "../autoflow-utils" }
 
 clap = { workspace = true }

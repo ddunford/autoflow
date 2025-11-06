@@ -9,3 +9,5 @@ license.workspace = true
 autoflow-data = { path = "../autoflow-data" }
 tokio = { workspace = true }
 tracing = { workspace = true }
+git2 = { workspace = true }
+chrono = { workspace = true }
