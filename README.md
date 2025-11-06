@@ -1,26 +1,38 @@
 # AutoFlow - Autonomous Coding Agent
 
-🚀 **Status**: v0.1.2 - Self-Healing Workflow Ready
+🚀 **Status**: v0.1.3 - Production Ready with Auto-Update
 
 AutoFlow is a fully autonomous TDD-driven coding agent that takes you from requirements to production-ready code with minimal manual intervention. Just create an `IDEA.md` file and run `autoflow start` - everything else is automated. Built in Rust for performance and reliability.
 
-## ⚠️ Current Status
+## ✅ Current Status
 
-**What Works**:
-- ✅ Core infrastructure (7 Rust crates, 14 CLI commands)
-- ✅ Git worktree isolation
+**Fully Working - Production Ready**:
+- ✅ Core infrastructure (7 Rust crates, 15 CLI commands)
+- ✅ 13 production agents included in repo
+- ✅ Complete TDD pipeline (IDEA → Docs → Sprints → Tests → Code → Review)
+- ✅ Git worktree isolation for parallel development
 - ✅ Quality gates and validation
 - ✅ Project initialization and status tracking
 - ✅ MCP server management
+- ✅ Auto-update system for agents/skills
+- ✅ Documentation pivot/refinement command
+- ✅ Autonomous bug fixing with investigation
+- ✅ Feature addition to existing codebases
 
-**What Requires Setup**:
-- ⚠️ Autonomous workflows need agent definitions ([see setup guide](SETUP_REQUIRED.md))
-- ⚠️ `agents/` and `skills/` directories not included in repo (yet)
+**What's Included**:
+- 📦 13 specialized agents (make-docs, make-sprints, code-implementer, test writers, fixers, reviewers)
+- 📋 10 comprehensive documentation types (BUILD_SPEC, ARCHITECTURE, API_SPEC, UI_SPEC, DATA_MODEL, etc.)
+- 🔄 Automatic agent/skill updates on startup
+- 🎯 Smart sprint state preservation
 
-**Quick Assessment**:
-- Want to use AutoFlow TODAY? → See [SETUP_REQUIRED.md](SETUP_REQUIRED.md) for agent setup
-- Want manual workflow? → Commands work without agents
-- Contributing? → Help add agent definitions to the repo!
+**Installation**:
+```bash
+git clone https://github.com/ddunford/autoflow
+cd autoflow
+./scripts/install.sh
+```
+
+The installer automatically sets up all agents, skills, and configuration. Just run `autoflow create my-project --idea IDEA.md` to get started!
 
 ## Features
 
@@ -49,25 +61,22 @@ AutoFlow is a fully autonomous TDD-driven coding agent that takes you from requi
 git clone https://github.com/ddunford/autoflow
 cd autoflow
 
-# Build and install
-cargo install --path crates/autoflow-cli
-
-# Copy to PATH (if needed)
-cp ~/.cargo/bin/autoflow ~/.autoflow/bin/
+# Run installer (handles everything automatically)
+./scripts/install.sh
 
 # Verify installation
 autoflow --version
 ```
 
 The installer will:
-- Build the release binary
+- Build the release binary with `cargo build --release`
 - Install to `~/.autoflow/bin/`
-- Copy 25+ agents to `~/.claude/agents/`
-- Copy 13+ skills to `~/.claude/skills/`
-- Add to your PATH
+- Copy 13 production agents to `~/.claude/agents/` (with `.agent.md` suffix)
+- Copy skills (if any) to `~/.claude/skills/`
+- Add to your PATH ($HOME/.bashrc or $HOME/.zshrc)
 - Create configuration files
 
-**Works with existing Claude Code setup** - Won't overwrite your custom agents or skills.
+**Works with existing Claude Code setup** - Uses `.agent.md` suffix to avoid conflicts with your custom agents.
 
 ### Create Your First Project
 
@@ -137,15 +146,15 @@ autoflow worktree list
 ```
 autoflow/
 ├── crates/
-│   ├── autoflow-cli/       # CLI application (14 commands)
+│   ├── autoflow-cli/       # CLI application (15 commands)
 │   ├── autoflow-core/      # Orchestration & state machine
 │   ├── autoflow-agents/    # Agent execution & management
 │   ├── autoflow-quality/   # Quality gates & validation
 │   ├── autoflow-data/      # Data structures (Sprint, Task, etc.)
 │   ├── autoflow-git/       # Git worktree operations
 │   └── autoflow-utils/     # Shared utilities
-├── agents/                 # 25+ specialized agents (in ~/.claude/agents/)
-├── skills/                 # 13+ diagnostic skills (in ~/.claude/skills/)
+├── agents/                 # 13 production agents (installed to ~/.claude/agents/)
+├── skills/                 # Diagnostic skills (installed to ~/.claude/skills/)
 ├── reference/              # Standards & guides
 ├── schemas/                # JSON schemas
 └── templates/              # Project templates
