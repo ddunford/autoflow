@@ -1,9 +1,7 @@
 use anyhow::{bail, Context, Result};
 use autoflow_utils::get_debug_logger;
-use serde_json::json;
 use std::path::PathBuf;
 use std::process::Stdio;
-use tokio::fs::{create_dir_all, File};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 
@@ -90,7 +88,7 @@ pub async fn execute_agent(
     agent_name: &str,
     context: &str,
     _max_turns: u32,
-    sprint_id: Option<u32>,
+    _sprint_id: Option<u32>,
 ) -> Result<AgentResult> {
     tracing::info!("Executing agent: {}", agent_name);
 
@@ -114,51 +112,8 @@ pub async fn execute_agent(
         );
     }
 
-    // Setup logging paths
-    let (_log_dir, log_file, json_log_file) = if let Some(id) = sprint_id {
-        let sprint_dir = PathBuf::from(".autoflow")
-            .join("sprints")
-            .join(format!("sprint-{:03}", id));
-        let log_dir = sprint_dir.join("logs");
-
-        create_dir_all(&log_dir).await.context("Failed to create log directory")?;
-
-        let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
-        let log_file = log_dir.join(format!("{}_{}.log", agent_name, timestamp));
-        let json_log_file = log_dir.join(format!("{}_{}.json", agent_name, timestamp));
-
-        (Some(log_dir), Some(log_file), Some(json_log_file))
-    } else {
-        (None, None, None)
-    };
-
-    // Open log files
-    let mut text_log = if let Some(ref path) = log_file {
-        Some(File::create(path).await.context("Failed to create text log file")?)
-    } else {
-        None
-    };
-
-    let mut json_log = if let Some(ref path) = json_log_file {
-        Some(File::create(path).await.context("Failed to create JSON log file")?)
-    } else {
-        None
-    };
-
-    // Write log header
-    if let Some(ref mut log) = text_log {
-        let header = format!(
-            "================================\n\
-             Agent: {}\n\
-             Sprint: {:?}\n\
-             Started: {}\n\
-             ================================\n",
-            agent_name,
-            sprint_id,
-            chrono::Utc::now().to_rfc3339()
-        );
-        log.write_all(header.as_bytes()).await?;
-    }
+    // Note: All logging is now handled by the debug_logger in .autoflow/.debug/
+    // Sprint-specific logs are no longer created to avoid duplication
 
     // Build the full prompt combining system prompt and context
     let full_prompt = format!("{}\n\n# Context\n\n{}", agent_def.system_prompt, context);
@@ -198,7 +153,6 @@ pub async fn execute_agent(
     let mut stdout_reader = BufReader::new(stdout).lines();
 
     let mut output = String::new();
-    let start_time = chrono::Utc::now();
 
     while let Some(line) = stdout_reader.next_line().await? {
         tracing::debug!("Agent output: {}", line);
@@ -208,24 +162,6 @@ pub async fn execute_agent(
         // Write to debug log
         if let Some(ref logger) = debug_logger {
             let _ = logger.log_agent_output(agent_name, &format!("{}\n", line));
-        }
-
-        // Write to text log
-        if let Some(ref mut log) = text_log {
-            log.write_all(line.as_bytes()).await?;
-            log.write_all(b"\n").await?;
-        }
-
-        // Write to JSON log
-        if let Some(ref mut json_log) = json_log {
-            let json_entry = json!({
-                "timestamp": chrono::Utc::now().to_rfc3339(),
-                "agent": agent_name,
-                "type": "output",
-                "content": line,
-            });
-            json_log.write_all(serde_json::to_string(&json_entry)?.as_bytes()).await?;
-            json_log.write_all(b"\n").await?;
         }
 
         // Filter output for console display (unless debug mode)
@@ -264,58 +200,12 @@ pub async fn execute_agent(
         error_output.push_str(&line);
         error_output.push('\n');
 
-        // Write errors to both logs
-        if let Some(ref mut log) = text_log {
-            log.write_all(format!("STDERR: {}\n", line).as_bytes()).await?;
-        }
-
-        if let Some(ref mut json_log) = json_log {
-            let json_entry = json!({
-                "timestamp": chrono::Utc::now().to_rfc3339(),
-                "agent": agent_name,
-                "type": "error",
-                "content": line,
-            });
-            json_log.write_all(serde_json::to_string(&json_entry)?.as_bytes()).await?;
-            json_log.write_all(b"\n").await?;
-        }
-
         // Always show errors on console
         eprintln!("  ERROR: {}", line);
     }
 
     // Wait for completion
     let status = child.wait().await.context("Failed to wait for agent")?;
-    let end_time = chrono::Utc::now();
-    let duration = end_time.signed_duration_since(start_time);
-
-    // Write completion info to logs
-    if let Some(ref mut log) = text_log {
-        let footer = format!(
-            "\n================================\n\
-             Completed: {}\n\
-             Duration: {}s\n\
-             Exit Code: {}\n\
-             ================================\n",
-            end_time.to_rfc3339(),
-            duration.num_seconds(),
-            status.code().unwrap_or(-1)
-        );
-        log.write_all(footer.as_bytes()).await?;
-    }
-
-    if let Some(ref mut json_log) = json_log {
-        let summary = json!({
-            "timestamp": end_time.to_rfc3339(),
-            "agent": agent_name,
-            "type": "summary",
-            "duration_seconds": duration.num_seconds(),
-            "exit_code": status.code().unwrap_or(-1),
-            "success": status.success(),
-        });
-        json_log.write_all(serde_json::to_string(&summary)?.as_bytes()).await?;
-        json_log.write_all(b"\n").await?;
-    }
 
     // Log completion to debug logger
     if let Some(ref logger) = debug_logger {
@@ -338,8 +228,8 @@ pub async fn execute_agent(
                 status, error_output
             ))
         },
-        log_path: log_file,
-        json_log_path: json_log_file,
+        log_path: None,
+        json_log_path: None,
     })
 }
 
