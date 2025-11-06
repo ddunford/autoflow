@@ -7,6 +7,7 @@ license.workspace = true
 
 [dependencies]
 autoflow-data = { path = "../autoflow-data" }
+autoflow-utils = { path = "../autoflow-utils" }
 tokio = { workspace = true, features = ["fs"] }
 tracing = { workspace = true }
 anyhow = { workspace = true }

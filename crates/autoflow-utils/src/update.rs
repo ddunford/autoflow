@@ -168,6 +168,7 @@ pub fn prompt_and_update(info: &UpdateInfo) -> Result<bool> {
             println!();
             println!("{}", "🔄 Running update...".bright_cyan());
             run_update_script()?;
+            update_check_timestamp()?;
             println!();
             println!("{}", "✅ Update complete!".bright_green());
             println!();

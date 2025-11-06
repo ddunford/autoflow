@@ -1,4 +1,5 @@
 use anyhow::{bail, Context, Result};
+use autoflow_utils::get_debug_logger;
 use serde_json::json;
 use std::path::PathBuf;
 use std::process::Stdio;
@@ -93,11 +94,25 @@ pub async fn execute_agent(
 ) -> Result<AgentResult> {
     tracing::info!("Executing agent: {}", agent_name);
 
+    // Initialize debug logger
+    let debug_logger = get_debug_logger();
+    if let Some(ref logger) = debug_logger {
+        let _ = logger.log_agent_start(agent_name, context);
+    }
+
     // Load agent definition
     let agent_def = load_agent_def(agent_name).await?;
 
     tracing::debug!("Agent model: {}", agent_def.model);
     tracing::debug!("Agent tools: {:?}", agent_def.tools);
+
+    if let Some(ref logger) = debug_logger {
+        let _ = logger.log_agent_step(
+            agent_name,
+            "Loaded agent definition",
+            &format!("Model: {}\nTools: {:?}", agent_def.model, agent_def.tools)
+        );
+    }
 
     // Setup logging paths
     let (_log_dir, log_file, json_log_file) = if let Some(id) = sprint_id {
@@ -189,6 +204,11 @@ pub async fn execute_agent(
         tracing::debug!("Agent output: {}", line);
         output.push_str(&line);
         output.push('\n');
+
+        // Write to debug log
+        if let Some(ref logger) = debug_logger {
+            let _ = logger.log_agent_output(agent_name, &format!("{}\n", line));
+        }
 
         // Write to text log
         if let Some(ref mut log) = text_log {
@@ -295,6 +315,16 @@ pub async fn execute_agent(
         });
         json_log.write_all(serde_json::to_string(&summary)?.as_bytes()).await?;
         json_log.write_all(b"\n").await?;
+    }
+
+    // Log completion to debug logger
+    if let Some(ref logger) = debug_logger {
+        if !status.success() {
+            let error_msg = format!("Agent exited with status: {}\nStderr: {}", status, error_output);
+            let _ = logger.log_agent_end(agent_name, status.success(), Some(&error_msg));
+        } else {
+            let _ = logger.log_agent_end(agent_name, status.success(), None::<&str>);
+        }
     }
 
     Ok(AgentResult {

@@ -176,13 +176,19 @@ IMPORTANT:
                 Ok(result) if result.success => {
                     println!("  {} Sprint plan generated", "✓".green());
 
-                    // Save sprints
+                    // Validate and fix YAML before saving
                     let yaml_content = autoflow_utils::extract_yaml_from_output(&result.output);
-                    std::fs::write(sprints_path, yaml_content)?;
-                    println!("  {} Saved to {}", "✓".green(), sprints_path.bright_blue());
-
-                    // Reload sprints
-                    sprints_data = SprintsYaml::load(sprints_path)?;
+                    match SprintsYaml::validate_and_fix(&yaml_content) {
+                        Ok(validated_sprints) => {
+                            // Save validated sprints
+                            validated_sprints.save(sprints_path)?;
+                            println!("  {} Validated and saved to {}", "✓".green(), sprints_path.bright_blue());
+                            sprints_data = validated_sprints;
+                        }
+                        Err(e) => {
+                            bail!("Generated SPRINTS.yml is invalid: {}. Please check the make-sprints agent output.", e);
+                        }
+                    }
                 }
                 _ => {
                     bail!("Failed to generate sprints. Please run 'autoflow create' instead.");

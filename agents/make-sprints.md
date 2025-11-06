@@ -139,6 +139,8 @@ project:
   version: "0.1.0"
   description: "actual description"
   total_sprints: 10
+  current_sprint: null
+  last_updated: "2025-01-01T00:00:00Z"
 
 sprints:
   - id: 1
@@ -147,6 +149,9 @@ sprints:
     duration: "4 hours"
     total_effort: "8 hours"
     max_effort: "12 hours"
+    started: null
+    last_updated: "2025-01-01T00:00:00Z"
+    completed_at: null
     deliverables:
       - "Deliverable 1"
       - "Deliverable 2"
@@ -154,6 +159,7 @@ sprints:
       - title: "Task name"
         description: "What to do"
         type: IMPLEMENTATION
+        doc_reference: "BUILD_SPEC.md#Relevant Section"
         acceptance_criteria:
           - "Criterion 1"
           - "Criterion 2"

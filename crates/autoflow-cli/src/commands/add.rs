@@ -205,6 +205,11 @@ fn create_template_sprint(id: u32, description: &str) -> Sprint {
             Task {
                 id: format!("task-{:03}", id),
                 title: format!("Implement {}", description),
+                description: Some(format!("Implement {} feature", description)),
+                r#type: Some("IMPLEMENTATION".to_string()),
+                doc_reference: None,
+                acceptance_criteria: vec!["Feature works as specified".to_string()],
+                test_specification: Some("Unit tests pass".to_string()),
                 effort: "6h".to_string(),
                 priority: Priority::High,
                 feature: description.to_string(),
