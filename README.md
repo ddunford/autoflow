@@ -428,14 +428,14 @@ my-project/
 ## Documentation
 
 ### User Documentation
-- **[USER_GUIDE.md](USER_GUIDE.md)** - Complete workflows and examples
-- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
-- **[MCP_SERVERS.md](MCP_SERVERS.md)** - Extend capabilities with MCP servers
-- **[CONFIGURATION.md](CONFIGURATION.md)** - Global vs project-level config
+- **[USER_GUIDE.md](docs/USER_GUIDE.md)** - Complete workflows and examples
+- **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[MCP_SERVERS.md](docs/MCP_SERVERS.md)** - Extend capabilities with MCP servers
+- **[CONFIGURATION.md](docs/CONFIGURATION.md)** - Global vs project-level config
 
 ### Developer Documentation
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System design and internals
-- **[CHANGELOG.md](CHANGELOG.md)** - Version history
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design and internals
+- **[CHANGELOG.md](docs/CHANGELOG.md)** - Version history
 
 ## Commands
 
@@ -711,7 +711,7 @@ cargo test -- --nocapture
 - Homebrew formula for macOS
 - Snap package for Linux
 
-See [CHANGELOG.md](CHANGELOG.md) for completed improvements and [GitHub Issues](https://github.com/ddunford/autoflow/issues) to track or suggest new features.
+See [CHANGELOG.md](docs/CHANGELOG.md) for completed improvements and [GitHub Issues](https://github.com/ddunford/autoflow/issues) to track or suggest new features.
 
 ## Troubleshooting
 
@@ -734,7 +734,7 @@ autoflow rollback --sprint <id>
 autoflow worktree delete <name> --force
 ```
 
-See **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** for complete guide.
+See **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** for complete guide.
 
 ## Contributing
 
@@ -767,4 +767,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 **Built with ❤️  by the AutoFlow community**
 
-[Documentation](USER_GUIDE.md) | [Troubleshooting](TROUBLESHOOTING.md) | [Configuration](CONFIGURATION.md) | [MCP Servers](MCP_SERVERS.md) | [Architecture](ARCHITECTURE.md)
+[Documentation](docs/USER_GUIDE.md) | [Troubleshooting](docs/TROUBLESHOOTING.md) | [Configuration](docs/CONFIGURATION.md) | [MCP Servers](docs/MCP_SERVERS.md) | [Architecture](docs/ARCHITECTURE.md)
