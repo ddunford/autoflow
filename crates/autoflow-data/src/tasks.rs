@@ -1,6 +1,23 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TaskType {
+    Implementation,
+    Documentation,
+    Test,
+    Infrastructure,
+    Refactor,
+    Bugfix,
+}
+
+impl Default for TaskType {
+    fn default() -> Self {
+        TaskType::Implementation
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
     #[serde(default = "generate_task_id")]
@@ -11,7 +28,7 @@ pub struct Task {
     pub description: Option<String>,
 
     #[serde(default)]
-    pub r#type: Option<String>,
+    pub r#type: TaskType,
 
     #[serde(default)]
     pub doc_reference: Option<String>,

@@ -183,13 +183,14 @@ fn parse_sprint_from_output(output: &str, next_id: u32, _description: &str) -> a
 
 /// Create a template sprint (used when agent is not available)
 fn create_template_sprint(id: u32, description: &str) -> Sprint {
-    use autoflow_data::{SprintStatus, Task, Priority, TestingRequirements, TestRequirement};
+    use autoflow_data::{SprintStatus, WorkflowType, Task, TaskType, Priority, TestingRequirements, TestRequirement};
     use chrono::Utc;
 
     Sprint {
         id,
         goal: description.to_string(),
         status: SprintStatus::Pending,
+        workflow_type: WorkflowType::Implementation,
         duration: Some("Week 1".to_string()),
         total_effort: "8h".to_string(),
         max_effort: "15h".to_string(),
@@ -206,7 +207,7 @@ fn create_template_sprint(id: u32, description: &str) -> Sprint {
                 id: format!("task-{:03}", id),
                 title: format!("Implement {}", description),
                 description: Some(format!("Implement {} feature", description)),
-                r#type: Some("IMPLEMENTATION".to_string()),
+                r#type: TaskType::Implementation,
                 doc_reference: None,
                 acceptance_criteria: vec!["Feature works as specified".to_string()],
                 test_specification: Some("Unit tests pass".to_string()),

@@ -137,11 +137,31 @@ fn default_description() -> String {
     "AutoFlow Project".to_string()
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum WorkflowType {
+    Implementation,
+    Documentation,
+    Test,
+    Infrastructure,
+    Refactor,
+}
+
+impl Default for WorkflowType {
+    fn default() -> Self {
+        WorkflowType::Implementation
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sprint {
     pub id: u32,
     pub goal: String,
     pub status: SprintStatus,
+
+    #[serde(default)]
+    pub workflow_type: WorkflowType,
+
     pub duration: Option<String>,
     pub total_effort: String,
     pub max_effort: String,
