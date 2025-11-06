@@ -145,6 +145,16 @@ impl Orchestrator {
     async fn execute_phase(&self, sprint: &Sprint) -> Result<bool> {
         use autoflow_agents::{build_agent_context, execute_agent, get_agent_for_status};
 
+        // Auto-advance Pending sprints without executing any agent
+        // Pending means the sprint is planned but not started yet
+        if sprint.status == SprintStatus::Pending {
+            tracing::info!(
+                "Sprint {} is Pending - auto-advancing to WriteUnitTests",
+                sprint.id
+            );
+            return Ok(true);
+        }
+
         let agent_name = get_agent_for_status(&sprint.status);
         let context = build_agent_context(sprint);
         let max_turns = self.get_max_turns_for_status(sprint.status);
