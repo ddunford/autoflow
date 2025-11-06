@@ -378,6 +378,9 @@ cargo build
 # Build release version
 cargo build --release
 
+# Update installed binary after rebuilding
+./scripts/update-binary.sh
+
 # Run from source
 cargo run -- --help
 
@@ -387,6 +390,8 @@ cargo test --all
 # Watch mode (requires cargo-watch)
 cargo watch -x 'run -- status'
 ```
+
+**Note**: After rebuilding, run `./scripts/update-binary.sh` to update your installed binary at `~/.autoflow/bin/autoflow`. This ensures you're always using the latest version.
 
 ### Testing
 
