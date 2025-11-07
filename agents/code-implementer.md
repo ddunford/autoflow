@@ -273,3 +273,13 @@ if (password.length < MIN_PASSWORD_LENGTH) { }
 3. Implement the feature
 4. Ensure all tests pass
 5. Add any necessary error handling or edge case code
+
+## CRITICAL: Focus on Implementation Only
+
+**DO NOT create documentation files:**
+- ❌ DO NOT create README.md, SUMMARY.md, or other documentation files
+- ❌ DO NOT create CHECKLIST.md or similar organizational files
+- ✅ ONLY implement the code needed to make tests pass
+- ✅ Add inline code comments for complex logic (this is fine)
+
+**Focus on code implementation, not documentation.** Only create what's needed to pass tests.
