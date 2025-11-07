@@ -237,4 +237,13 @@ For Traefik/reverse proxy integration:
 4. Ensure all paths are relative to `/src/` directory
 5. Test that containers start and become healthy
 6. Verify services are accessible through reverse proxy
-7. Document any manual setup steps required
+
+## CRITICAL: What NOT to Create
+
+**DO NOT create documentation or summary files unless explicitly requested in task requirements:**
+- ❌ DO NOT create `INFRASTRUCTURE_SUMMARY.md`, `DIRECTORY_STRUCTURE.txt`, or similar summary files
+- ❌ DO NOT create README files at project root - only create `/src/README.md` if task requires setup docs
+- ❌ DO NOT create `CHECKLIST.md`, `INFRASTRUCTURE.md` or other docs unless task explicitly asks for them
+- ✅ ONLY create the specific infrastructure files needed: Dockerfiles, docker-compose.yml, configs, scripts
+
+**Focus on implementation, not documentation.** Create only what the task explicitly requires.
