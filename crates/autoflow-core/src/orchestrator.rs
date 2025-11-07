@@ -1,10 +1,14 @@
 use autoflow_data::{AutoFlowError, Result, Sprint, SprintStatus};
 use crate::workflow::get_workflow_definition;
+use crate::git::{commit_project_changes, should_commit_after_phase, get_commit_message_for_phase};
 use chrono::Utc;
+use std::path::PathBuf;
 
 pub struct Orchestrator {
     max_iterations: u32,
     save_callback: Option<Box<dyn Fn(&Sprint) -> Result<()> + Send + Sync>>,
+    project_path: Option<PathBuf>,
+    enable_auto_commit: bool,
 }
 
 impl Orchestrator {
@@ -12,6 +16,8 @@ impl Orchestrator {
         Self {
             max_iterations,
             save_callback: None,
+            project_path: None,
+            enable_auto_commit: false,
         }
     }
 
@@ -21,6 +27,18 @@ impl Orchestrator {
         F: Fn(&Sprint) -> Result<()> + Send + Sync + 'static,
     {
         self.save_callback = Some(Box::new(callback));
+        self
+    }
+
+    /// Set the project path for automatic git commits
+    pub fn with_project_path(mut self, path: PathBuf) -> Self {
+        self.project_path = Some(path);
+        self
+    }
+
+    /// Enable automatic git commits after successful phases
+    pub fn with_auto_commit(mut self, enabled: bool) -> Self {
+        self.enable_auto_commit = enabled;
         self
     }
 
@@ -95,8 +113,19 @@ impl Orchestrator {
                         };
 
                         if let Some(status) = next_status {
+                            let previous_status = sprint.status;
                             sprint.status = status;
                             sprint.last_updated = Utc::now();
+
+                            // Create git commit after successful phase completion
+                            if self.enable_auto_commit && should_commit_after_phase(previous_status) {
+                                if let Some(ref project_path) = self.project_path {
+                                    let commit_msg = get_commit_message_for_phase(previous_status);
+                                    if let Err(e) = commit_project_changes(project_path, sprint, commit_msg) {
+                                        tracing::warn!("Failed to create git commit: {}", e);
+                                    }
+                                }
+                            }
                         } else {
                             tracing::warn!(
                                 "Sprint {} at {:?} has no next phase in workflow",

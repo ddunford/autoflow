@@ -505,35 +505,43 @@ Only fix what's broken - preserve all existing content."#,
     // Create orchestrator
     let max_iterations = 50;
 
+    // Get current directory for git commits
+    let project_path = std::env::current_dir()?;
+
     // Only use save callback in sequential mode to avoid race conditions
     // In parallel mode, we save once after all sprints complete
     let orchestrator = if parallel && sprint_indices.len() > 1 {
         // Parallel mode: no save callback (prevents race conditions)
         Orchestrator::new(max_iterations)
+            .with_project_path(project_path)
+            .with_auto_commit(true)
     } else {
         // Sequential mode: save after each iteration
         let sprints_path_for_callback = sprints_path.to_string();
-        Orchestrator::new(max_iterations).with_save_callback({
-            move |updated_sprint| {
-                // Load current file, update the specific sprint, save back
-                match SprintsYaml::load(&sprints_path_for_callback) {
-                    Ok(mut data) => {
-                        // Find and update the sprint
-                        if let Some(sprint) = data.sprints.iter_mut().find(|s| s.id == updated_sprint.id) {
-                            *sprint = updated_sprint.clone();
-                            data.project.last_updated = chrono::Utc::now();
-                            data.save(&sprints_path_for_callback)?;
+        Orchestrator::new(max_iterations)
+            .with_project_path(project_path)
+            .with_auto_commit(true)
+            .with_save_callback({
+                move |updated_sprint| {
+                    // Load current file, update the specific sprint, save back
+                    match SprintsYaml::load(&sprints_path_for_callback) {
+                        Ok(mut data) => {
+                            // Find and update the sprint
+                            if let Some(sprint) = data.sprints.iter_mut().find(|s| s.id == updated_sprint.id) {
+                                *sprint = updated_sprint.clone();
+                                data.project.last_updated = chrono::Utc::now();
+                                data.save(&sprints_path_for_callback)?;
+                            }
+                            Ok(())
                         }
-                        Ok(())
-                    }
-                    Err(e) => {
-                        // Non-fatal: log but don't fail the sprint
-                        tracing::warn!("Failed to save sprint progress: {}", e);
-                        Ok(())
+                        Err(e) => {
+                            // Non-fatal: log but don't fail the sprint
+                            tracing::warn!("Failed to save sprint progress: {}", e);
+                            Ok(())
+                        }
                     }
                 }
-            }
-        })
+            })
     };
 
     // Execute sprints
