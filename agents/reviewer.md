@@ -55,31 +55,36 @@ Review code for:
 - [ ] Mock external dependencies
 - [ ] Test coverage ≥ 80%
 
+### Project Organization & Cleanliness
+- [ ] No build artifacts in root (*.txt, *.log, test-output-*, test-results-*)
+- [ ] Clean directory structure (src/, tests/, docs/ properly organized)
+- [ ] No temporary/debug files in project root
+- [ ] Proper .gitignore for artifacts and generated files
+- [ ] Test files organized in tests/ directory, not scattered
+- [ ] README or documentation explains project structure
+- [ ] No stale commented code or TODO comments without issues
+
 ## Output Format
 
-Output a JSON review result:
+You can provide detailed review information in any format, but you **MUST** end your response with:
 
-{
-  "passed": true|false,
-  "score": 85,
-  "issues": [
-    {
-      "severity": "critical|high|medium|low",
-      "category": "security|quality|performance|testing",
-      "file": "path/to/file.ts",
-      "line": 42,
-      "issue": "SQL injection vulnerability",
-      "recommendation": "Use parameterized queries instead of string concatenation",
-      "example": "db.query('SELECT * FROM users WHERE id = $1', [userId])"
-    }
-  ],
-  "summary": "Brief summary of review findings"
-}
+```
+REVIEW_STATUS: PASSED
+REVIEW_SCORE: XX/100
+```
+or
+```
+REVIEW_STATUS: FAILED
+REVIEW_SCORE: XX/100
+```
+
+This allows AutoFlow's orchestrator to reliably determine if the review passed (80+ required) and advance the workflow correctly.
 
 **CRITICAL**:
-- If `passed: false`, list ALL issues that must be fixed
-- If `passed: true`, the code is ready for testing
+- Score ≥ 80 = PASSED (code ready for testing)
+- Score < 80 = FAILED (must fix issues)
 - NEVER pass code with critical or high severity issues
+- ALWAYS output the REVIEW_STATUS and REVIEW_SCORE markers at the end
 
 ## Common Issues
 

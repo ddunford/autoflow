@@ -151,43 +151,75 @@ Only fix what's broken - preserve all existing content and sprint progress."#,
 
             if !docs_exist {
                 println!("{}", "📚 Generating project documentation...".bright_cyan());
-                println!("  Spawning make-docs agent...");
 
                 let idea_content = std::fs::read_to_string("IDEA.md")?;
-                let docs_context = format!(r#"Generate comprehensive project documentation from this idea:
+                let base_context = format!(r#"Generate comprehensive project documentation from this idea:
 
 {}
 
-Create the following files in .autoflow/docs/:
-
-CORE DOCUMENTATION (always):
-1. .autoflow/docs/BUILD_SPEC.md - Detailed technical specification
-2. .autoflow/docs/ARCHITECTURE.md - System architecture and design
-3. .autoflow/docs/TESTING_STRATEGY.md - Testing approach and requirements
-4. .autoflow/docs/ERROR_HANDLING.md - Error management patterns
-5. .autoflow/docs/DEPLOYMENT.md - Deployment and operations guide
-
-CONDITIONAL DOCUMENTATION (based on project type):
-6. .autoflow/docs/API_SPEC.md - API endpoints and data models (if backend/API)
-7. .autoflow/docs/UI_SPEC.md - UI/UX specifications (if frontend/UI)
-8. .autoflow/docs/DATA_MODEL.md - Database schema and relationships (if database)
-9. .autoflow/docs/STATE_MANAGEMENT.md - Frontend state patterns (if frontend framework)
-10. .autoflow/docs/SECURITY.md - Security implementation (if backend/API)
-
-Detect project type from the IDEA and generate appropriate documentation.
-Always include references and links between documents.
-
-IMPORTANT: All documentation files MUST be created in the .autoflow/docs/ directory, NOT in the project root.
+IMPORTANT: All documentation files MUST be created in .autoflow/docs/ directory, NOT in the project root.
 "#, idea_content);
 
-                match autoflow_agents::execute_agent("make-docs", &docs_context, 15, None).await {
-                    Ok(result) if result.success => {
-                        println!("  {} Documentation generated", "✓".green());
+                // Generate foundation docs (BUILD_SPEC, ARCHITECTURE with error handling)
+                println!("  Spawning make-docs-foundation agent...");
+                match autoflow_agents::execute_agent("make-docs-foundation", &base_context, 15, None).await {
+                    Ok(result) => {
+                        if result.success {
+                            println!("  {} Foundation docs generated (BUILD_SPEC, ARCHITECTURE)", "✓".green());
+                        } else {
+                            println!("  {} Foundation agent completed with warnings", "⚠".yellow());
+                        }
                     }
-                    _ => {
-                        bail!("Failed to generate documentation. Please run 'autoflow create' instead.");
+                    Err(e) => {
+                        println!("  {} Failed to generate foundation docs: {}", "⚠".yellow(), e);
+                        // Create minimal BUILD_SPEC as fallback
+                        let idea_content = std::fs::read_to_string("IDEA.md")?;
+                        let minimal_spec = format!(r#"# Build Specification
+
+## Original Idea
+
+{}
+
+## Tech Stack
+To be determined during sprint planning.
+
+## Architecture
+To be determined during implementation.
+"#, idea_content);
+                        std::fs::write(".autoflow/docs/BUILD_SPEC.md", minimal_spec)?;
                     }
                 }
+
+                // Generate API docs (API_SPEC with data model and security)
+                println!("  Spawning make-docs-api agent...");
+                match autoflow_agents::execute_agent("make-docs-api", &base_context, 15, None).await {
+                    Ok(result) => {
+                        if result.success {
+                            println!("  {} API docs generated (API_SPEC with data model and security)", "✓".green());
+                        } else {
+                            println!("  {} API agent completed with warnings", "⚠".yellow());
+                        }
+                    }
+                    Err(e) => {
+                        println!("  {} API docs generation failed (may not be applicable): {}", "⚠".yellow(), e);
+                    }
+                }
+
+                // Generate UI docs (UI_SPEC with state management, TESTING_STRATEGY)
+                println!("  Spawning make-docs-ui agent...");
+                match autoflow_agents::execute_agent("make-docs-ui", &base_context, 15, None).await {
+                    Ok(result) => {
+                        if result.success {
+                            println!("  {} UI docs generated (UI_SPEC, TESTING_STRATEGY)", "✓".green());
+                        } else {
+                            println!("  {} UI agent completed with warnings", "⚠".yellow());
+                        }
+                    }
+                    Err(e) => {
+                        println!("  {} UI docs generation failed (may not be applicable): {}", "⚠".yellow(), e);
+                    }
+                }
+
                 println!();
             }
 
@@ -195,16 +227,12 @@ IMPORTANT: All documentation files MUST be created in the .autoflow/docs/ direct
             println!("{}", "📋 Generating sprint plan...".bright_cyan());
             println!("  Spawning make-sprints agent...");
 
+            // Read the consolidated documentation files
             let build_spec = std::fs::read_to_string(".autoflow/docs/BUILD_SPEC.md").unwrap_or_default();
             let architecture = std::fs::read_to_string(".autoflow/docs/ARCHITECTURE.md").unwrap_or_default();
             let api_spec = std::fs::read_to_string(".autoflow/docs/API_SPEC.md").unwrap_or_default();
             let ui_spec = std::fs::read_to_string(".autoflow/docs/UI_SPEC.md").unwrap_or_default();
-            let data_model = std::fs::read_to_string(".autoflow/docs/DATA_MODEL.md").unwrap_or_default();
             let testing_strategy = std::fs::read_to_string(".autoflow/docs/TESTING_STRATEGY.md").unwrap_or_default();
-            let error_handling = std::fs::read_to_string(".autoflow/docs/ERROR_HANDLING.md").unwrap_or_default();
-            let state_management = std::fs::read_to_string(".autoflow/docs/STATE_MANAGEMENT.md").unwrap_or_default();
-            let security = std::fs::read_to_string(".autoflow/docs/SECURITY.md").unwrap_or_default();
-            let deployment = std::fs::read_to_string(".autoflow/docs/DEPLOYMENT.md").unwrap_or_default();
 
             // Load JSON schema - try global location first, then embedded
             let json_schema = {
@@ -237,6 +265,10 @@ IMPORTANT SCHEMA REQUIREMENTS:
 - Valid sprint statuses: PENDING, WRITE_UNIT_TESTS, WRITE_CODE, CODE_REVIEW, REVIEW_FIX, RUN_UNIT_TESTS, UNIT_FIX, WRITE_E2E_TESTS, RUN_E2E_TESTS, E2E_FIX, COMPLETE, DONE, BLOCKED
 - All sprints must start with status: PENDING
 - Include last_updated timestamp in ISO 8601 format
+- CRITICAL: dependencies MUST be an array of strings (sprint IDs), NOT maps/objects
+  CORRECT:   dependencies: ["1", "2"]
+  WRONG:     dependencies: [{{Sprint 1: Infrastructure}}]
+  WRONG:     dependencies: [Sprint 1: Infrastructure]
 
 # PROJECT DOCUMENTATION
 
@@ -254,22 +286,7 @@ Generate a complete sprint plan from the following project documentation:
 # UI_SPEC.md
 {}
 
-# DATA_MODEL.md
-{}
-
 # TESTING_STRATEGY.md
-{}
-
-# ERROR_HANDLING.md
-{}
-
-# STATE_MANAGEMENT.md
-{}
-
-# SECURITY.md
-{}
-
-# DEPLOYMENT.md
 {}
 
 IMPORTANT:
@@ -277,9 +294,12 @@ IMPORTANT:
 2. Break down the features into logical sprints
 3. Each sprint task should LINK to the documentation section it implements
 4. Follow TDD workflow: Tests → Implementation → Review
-5. Reference specific sections from the docs (e.g., "See DATA_MODEL.md#UserSchema")
-6. Output ONLY raw YAML - no markdown fences, no explanations
-"#, json_schema, build_spec, architecture, api_spec, ui_spec, data_model, testing_strategy, error_handling, state_management, security, deployment);
+5. Reference specific sections from the docs (e.g., "See API_SPEC.md#UserEndpoints" or "See ARCHITECTURE.md#ErrorHandling")
+6. Note: Data model is in API_SPEC.md, error handling is in ARCHITECTURE.md, state management is in UI_SPEC.md, security is in API_SPEC.md
+7. Output ONLY raw YAML - no markdown fences, no explanations
+
+The agent definition already contains the full YAML format. Just output the actual YAML content.
+"#, json_schema, build_spec, architecture, api_spec, ui_spec, testing_strategy);
 
             // Retry loop for sprint generation with validation
             let max_retries = 2;
@@ -398,6 +418,19 @@ Only fix what's broken - preserve all existing content."#,
             );
         }
     }
+
+    // Final schema validation before starting sprint execution
+    println!("{}", "Validating sprint configuration...".bright_cyan());
+    if let Err(validation_errors) = SprintsYaml::validate_all_errors(sprints_path) {
+        bail!(
+            "{}\n\n{}\n\n{}",
+            "SPRINTS.yml failed final schema validation".red().bold(),
+            validation_errors,
+            "Please fix the validation errors manually or delete SPRINTS.yml and run 'autoflow create'".yellow()
+        );
+    }
+    println!("  {} Schema validation passed", "✓".green());
+    println!();
 
     println!("{}", "Loading sprints...".bright_cyan());
 

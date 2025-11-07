@@ -133,70 +133,117 @@ Any specific requirements or constraints:
     println!("{}", "🤖 Setting up Claude configuration...".bright_cyan());
     fs::create_dir_all(".claude")?;
 
-    let claude_config = r#"# Claude Code Configuration
+    let claude_config = r#"# AutoFlow Project Configuration
 
-## 🚫 NO REPORTS OR SUMMARIES
+## Project Structure
 
-**CRITICAL: Do NOT create any of these files:**
-- DEPLOYMENT_SUMMARY.md
-- SUMMARY.md, REPORT.md, README.md (unless explicitly required)
-- Any file with "summary" or "report" in the name
+**CRITICAL - Code Organization:**
+```
+project-root/
+├── src/                    # ALL source code goes here
+│   ├── backend/           # Backend services
+│   ├── frontend/          # Frontend application
+│   ├── shared/            # Shared utilities/types
+│   └── ...                # Other source modules
+├── tests/                 # ALL tests go here
+│   ├── unit/
+│   ├── integration/
+│   └── e2e/
+├── .autoflow/             # AutoFlow metadata (DO NOT MODIFY)
+│   ├── docs/             # Project specifications
+│   └── SPRINTS.yml       # Sprint definitions
+└── .claude/              # This configuration
+```
 
-**ONLY write:**
-1. Code/config files needed for functionality
-2. Files explicitly mentioned in deliverables
-3. Files required by acceptance criteria
+**File Placement Rules:**
+1. ✅ Code files → `src/`
+2. ✅ Test files → `tests/`
+3. ✅ Config files → project root (package.json, tsconfig.json, etc.)
+4. ❌ NEVER create top-level code directories (`backend/`, `frontend/`, etc.)
+5. ❌ NEVER create summary/report files unless explicitly required
 
-Your job is working code, not meta-documentation.
+## Development Guidelines
+
+### Code Quality
+- Write clean, maintainable code following language best practices
+- Include inline comments for complex logic
+- Follow consistent naming conventions
+- Implement proper error handling
+
+### Testing
+- Write tests FIRST (TDD approach)
+- Test files mirror source structure in `tests/` directory
+- Aim for high coverage of critical paths
+- Include unit, integration, and E2E tests as appropriate
+
+### Documentation
+- **In-code documentation**: Use JSDoc/docstrings for functions/classes
+- **Technical specs**: Already in `.autoflow/docs/` - reference them
+- **DO NOT CREATE**:
+  - DEPLOYMENT_SUMMARY.md
+  - SUMMARY.md, REPORT.md
+  - README.md (unless explicitly required in sprint)
+  - Any file with "summary" or "report" in the name
+
+### Sprint Workflow
+1. Read the current sprint from `.autoflow/SPRINTS.yml`
+2. Reference specifications in `.autoflow/docs/` for implementation details
+3. Create tests in `tests/` directory first
+4. Implement code in `src/` directory
+5. Ensure all tests pass before marking complete
+
+## AutoFlow Integration
+
+This project uses AutoFlow for autonomous development:
+- Sprint definitions: `.autoflow/SPRINTS.yml`
+- Technical specs: `.autoflow/docs/`
+- Do not manually modify AutoFlow files unless debugging
+
+## File Creation Checklist
+
+Before creating any file, verify:
+- [ ] Is it source code? → Must go in `src/`
+- [ ] Is it a test? → Must go in `tests/`
+- [ ] Is it explicitly required in the current sprint deliverables?
+- [ ] Am I about to create a summary/report? → STOP, don't create it
+
+## Your Role
+
+You are implementing features defined in the sprint plan. Focus on:
+1. **Working code** that passes tests
+2. **Proper structure** following the rules above
+3. **Quality implementation** that meets acceptance criteria
+
+Not on creating documentation, summaries, or organizing files outside `src/` and `tests/`.
 "#;
 
     fs::write(".claude/CLAUDE.md", claude_config)?;
-    println!("  {} Created .claude/CLAUDE.md with NO REPORTS rule", "✓".green());
+    println!("  {} Created .claude/CLAUDE.md with project structure rules", "✓".green());
     println!();
 
-    // 6. Generate comprehensive documentation
+    // 6. Generate comprehensive documentation (split into specialized agents)
     println!("{}", "📚 Generating project documentation...".bright_cyan());
-    println!("  Spawning make-docs agent...");
 
-    let docs_context = format!(r#"Generate comprehensive project documentation from this idea:
+    let base_context = format!(r#"Generate comprehensive project documentation from this idea:
 
 {}
-
-Create the following files in .autoflow/docs/:
-
-CORE DOCUMENTATION (always):
-1. .autoflow/docs/BUILD_SPEC.md - Detailed technical specification
-2. .autoflow/docs/ARCHITECTURE.md - System architecture and design
-3. .autoflow/docs/TESTING_STRATEGY.md - Testing approach and requirements
-4. .autoflow/docs/ERROR_HANDLING.md - Error management patterns
-5. .autoflow/docs/DEPLOYMENT.md - Deployment and operations guide
-
-CONDITIONAL DOCUMENTATION (based on project type):
-6. .autoflow/docs/API_SPEC.md - API endpoints and data models (if backend/API)
-7. .autoflow/docs/UI_SPEC.md - UI/UX specifications (if frontend/UI)
-8. .autoflow/docs/DATA_MODEL.md - Database schema and relationships (if database)
-9. .autoflow/docs/STATE_MANAGEMENT.md - Frontend state patterns (if frontend framework)
-10. .autoflow/docs/SECURITY.md - Security implementation (if backend/API)
-
-Detect project type from the IDEA and generate appropriate documentation.
-Always include references and links between documents.
 
 IMPORTANT: All documentation files MUST be created in .autoflow/docs/ directory, NOT in the project root.
 "#, idea_content);
 
-    match execute_agent("make-docs", &docs_context, 15, None).await {
+    // 6.1 Generate foundation docs (BUILD_SPEC, ARCHITECTURE with error handling)
+    println!("  Spawning make-docs-foundation agent...");
+    match execute_agent("make-docs-foundation", &base_context, 15, None).await {
         Ok(result) => {
             if result.success {
-                println!("  {} Documentation generated", "✓".green());
+                println!("  {} Foundation docs generated (BUILD_SPEC, ARCHITECTURE)", "✓".green());
             } else {
-                println!("  {} Agent completed with warnings", "⚠".yellow());
+                println!("  {} Foundation agent completed with warnings", "⚠".yellow());
             }
         }
         Err(e) => {
-            println!("  {} Failed to generate docs: {}", "⚠".yellow(), e);
-            println!("  Creating minimal BUILD_SPEC.md...");
-
-            // Fallback: create minimal BUILD_SPEC.md in .autoflow/docs/
+            println!("  {} Failed to generate foundation docs: {}", "⚠".yellow(), e);
+            // Create minimal BUILD_SPEC as fallback
             let minimal_spec = format!(r#"# Build Specification
 
 ## Original Idea
@@ -209,10 +256,40 @@ To be determined during sprint planning.
 ## Architecture
 To be determined during implementation.
 "#, idea_content);
-
             fs::write(".autoflow/docs/BUILD_SPEC.md", minimal_spec)?;
         }
     }
+
+    // 6.2 Generate API docs (API_SPEC with data model and security)
+    println!("  Spawning make-docs-api agent...");
+    match execute_agent("make-docs-api", &base_context, 15, None).await {
+        Ok(result) => {
+            if result.success {
+                println!("  {} API docs generated (API_SPEC with data model and security)", "✓".green());
+            } else {
+                println!("  {} API agent completed with warnings", "⚠".yellow());
+            }
+        }
+        Err(e) => {
+            println!("  {} API docs generation failed (may not be applicable): {}", "⚠".yellow(), e);
+        }
+    }
+
+    // 6.3 Generate UI docs (UI_SPEC with state management, TESTING_STRATEGY)
+    println!("  Spawning make-docs-ui agent...");
+    match execute_agent("make-docs-ui", &base_context, 15, None).await {
+        Ok(result) => {
+            if result.success {
+                println!("  {} UI docs generated (UI_SPEC, TESTING_STRATEGY)", "✓".green());
+            } else {
+                println!("  {} UI agent completed with warnings", "⚠".yellow());
+            }
+        }
+        Err(e) => {
+            println!("  {} UI docs generation failed (may not be applicable): {}", "⚠".yellow(), e);
+        }
+    }
+
     println!();
 
     // 7. Create project directory structure
@@ -277,6 +354,10 @@ IMPORTANT SCHEMA REQUIREMENTS:
 - Valid sprint statuses: PENDING, WRITE_UNIT_TESTS, WRITE_CODE, CODE_REVIEW, REVIEW_FIX, RUN_UNIT_TESTS, UNIT_FIX, WRITE_E2E_TESTS, RUN_E2E_TESTS, E2E_FIX, COMPLETE, DONE, BLOCKED
 - All sprints must start with status: PENDING
 - Include last_updated timestamp in ISO 8601 format
+- CRITICAL: dependencies MUST be an array of strings (sprint IDs), NOT maps/objects
+  CORRECT:   dependencies: ["1", "2"]
+  WRONG:     dependencies: [{{Sprint 1: Infrastructure}}]
+  WRONG:     dependencies: [Sprint 1: Infrastructure]
 
 # PROJECT DOCUMENTATION
 
