@@ -222,6 +222,51 @@ RUN docker-php-ext-enable redis
 6. **Use read-only filesystems** where possible
 7. **Enable Docker Content Trust** for production
 
+## CRITICAL: File Permissions in Development
+
+**Containers running as root create files owned by root**, causing cleanup issues on the host.
+
+**Solution: Run containers as host user in docker-compose.yml:**
+
+```yaml
+services:
+  backend:
+    build: ./backend
+    # Run as host user (not root!)
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - ./backend:/app
+    # This ensures all created files are owned by host user
+
+  frontend:
+    build: ./frontend
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - ./frontend:/app
+```
+
+**In .env file:**
+```bash
+# .env
+UID=1000  # Get with: id -u
+GID=1000  # Get with: id -g
+```
+
+**For services that MUST run as root (like postgres, nginx):**
+```yaml
+services:
+  postgres:
+    image: postgres:16-alpine
+    # No user directive - runs as root (required for postgres)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Use named volume, not bind mount
+```
+
+**Key Rules:**
+1. Application containers (backend, frontend) → `user: "${UID}:${GID}"`
+2. Database containers → No user directive (they handle permissions internally)
+3. Use named volumes for databases, bind mounts for application code
+
 ## Health Check Requirements
 
 For Traefik/reverse proxy integration:
@@ -235,6 +280,9 @@ For Traefik/reverse proxy integration:
 - [ ] All files created under `/src/` directory
 - [ ] docker-compose.yml created at `/src/docker-compose.yml`
 - [ ] All volume mounts use correct relative paths (from /src/)
+- [ ] **Application containers use `user: "${UID:-1000}:${GID:-1000}"`**
+- [ ] **UID and GID variables defined in .env file**
+- [ ] Database containers use named volumes (not bind mounts)
 - [ ] All build dependencies included ($PHPIZE_DEPS, linux-headers, etc.)
 - [ ] All runtime directories created (logs, cache, storage)
 - [ ] Health checks use IPv4 (127.0.0.1) and correct endpoints
@@ -249,13 +297,14 @@ For Traefik/reverse proxy integration:
 ## Common Failure Modes
 
 1. **Volume mount path mismatch** → Container fails to start (directory not found)
-2. **Missing build dependencies** → Build fails (autoconf, linux-headers)
-3. **Missing runtime directories** → Service crashes (log directory not found)
-4. **Wrong health check address** → Always unhealthy (IPv6 vs IPv4)
-5. **Wrong health check endpoint** → Always unhealthy (/health doesn't exist)
-6. **docker-compose overrides Dockerfile** → Health check never works after fixing Dockerfile
-7. **npm ci without lock file** → Build fails
-8. **Missing script dependencies** → postinstall fails
+2. **Files created as root** → Can't clean up on host (permission denied)
+3. **Missing build dependencies** → Build fails (autoconf, linux-headers)
+4. **Missing runtime directories** → Service crashes (log directory not found)
+5. **Wrong health check address** → Always unhealthy (IPv6 vs IPv4)
+6. **Wrong health check endpoint** → Always unhealthy (/health doesn't exist)
+7. **docker-compose overrides Dockerfile** → Health check never works after fixing Dockerfile
+8. **npm ci without lock file** → Build fails
+9. **Missing script dependencies** → postinstall fails
 
 ## Start Now
 
