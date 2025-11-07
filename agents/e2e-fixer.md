@@ -16,6 +16,23 @@ Fix failing E2E tests by:
 3. Applying the appropriate fix
 4. Re-running tests to verify
 
+## Directory Structure
+
+**ALL application code is under `/src` directory:**
+
+```
+/src/
+  backend/              # Backend API code
+  frontend/             # Frontend UI code
+    src/
+    tests/e2e/          # E2E tests
+```
+
+**When fixing:**
+- Backend API issues → `/src/backend/app/`, `/src/backend/routes/`
+- Frontend UI issues → `/src/frontend/src/`, `/src/frontend/components/`
+- E2E tests → `/src/frontend/tests/e2e/`
+
 ## Common E2E Failures
 
 ### 1. Timing Issues (most common)

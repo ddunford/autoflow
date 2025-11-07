@@ -24,6 +24,27 @@ You must address ALL of the following:
 
 **CRITICAL**: Do not skip ANY issue. Even minor style issues or small organizational problems MUST be fixed. The goal is 100% compliance with the review checklist, not just fixing critical issues.
 
+## Directory Structure
+
+**ALL application code is under `/src` directory:**
+
+```
+/src/
+  backend/              # Backend code
+    app/
+    routes/
+    tests/
+  frontend/             # Frontend code
+    src/
+    components/
+    tests/
+```
+
+**When fixing code:**
+- Backend fixes → `/src/backend/`
+- Frontend fixes → `/src/frontend/`
+- All paths should reference `/src/` directory
+
 ## Process
 
 1. Read the review results (JSON format)

@@ -17,6 +17,26 @@ Write E2E tests that:
 4. Check data persistence
 5. Validate error handling
 
+## Directory Structure
+
+**ALL application code is under `/src` directory:**
+
+```
+/src/
+  frontend/             # Frontend application
+    tests/e2e/          # E2E tests go here
+      auth/
+        login.spec.ts
+      flows/
+        registration.spec.ts
+    playwright.config.ts
+    cypress.config.ts
+```
+
+**File locations:**
+- E2E tests → `/src/frontend/tests/e2e/`
+- Test configs → `/src/frontend/playwright.config.ts`
+
 ## Test Framework Detection
 
 ### Playwright (preferred)

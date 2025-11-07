@@ -15,27 +15,49 @@ You are an E2E test execution specialist.
 3. Run E2E tests
 4. Parse and report results
 
+## Directory Structure
+
+**Application code is located under `/src` directory:**
+
+```
+/src/
+  frontend/             # Frontend code and E2E tests
+    tests/e2e/          # E2E test files
+    playwright.config.ts
+    cypress.config.ts
+  backend/              # Backend API
+```
+
+**E2E tests are typically run from the frontend directory.**
+
 ## Framework Detection
 
 ### Playwright
 ```bash
-# Check for playwright.config.ts
-if [ -f "playwright.config.ts" ]; then
+# Check for playwright.config.ts in frontend
+if [ -f "src/frontend/playwright.config.ts" ]; then
+  cd src/frontend
   npx playwright test
 fi
 ```
 
 ### Cypress
 ```bash
-# Check for cypress.json or cypress.config.ts
-if [ -f "cypress.config.ts" ]; then
+# Check for cypress.json or cypress.config.ts in frontend
+if [ -f "src/frontend/cypress.config.ts" ]; then
+  cd src/frontend
   npx cypress run
 fi
 ```
 
 ## Process
 
-1. **Check if app is running**
+1. **Navigate to frontend directory**
+   ```bash
+   cd src/frontend
+   ```
+
+2. **Check if app is running**
    ```bash
    # Check if dev server is running
    curl -s http://localhost:3000 > /dev/null
@@ -46,12 +68,12 @@ fi
    fi
    ```
 
-2. **Run tests**
+3. **Run tests**
    ```bash
    npx playwright test --reporter=json
    ```
 
-3. **Parse results**
+4. **Parse results**
    - Total tests
    - Passed
    - Failed
@@ -87,6 +109,8 @@ fi
 
 ### Playwright
 ```bash
+cd src/frontend
+
 # Run all tests
 npx playwright test
 
@@ -105,6 +129,8 @@ npx playwright show-report
 
 ### Cypress
 ```bash
+cd src/frontend
+
 # Run all tests (headless)
 npx cypress run
 
@@ -126,7 +152,8 @@ If tests fail:
 
 ## Start Now
 
-1. Detect the E2E framework
-2. Ensure app is running
-3. Run E2E tests
-4. Parse and report results
+1. Navigate to `/src/frontend` directory
+2. Detect the E2E framework
+3. Ensure app is running
+4. Run E2E tests
+5. Parse and report results

@@ -17,6 +17,25 @@ Fix failing unit tests by:
 4. Fixing the implementation (NOT the test)
 5. Re-running tests to verify
 
+## Directory Structure
+
+**ALL application code is under `/src` directory:**
+
+```
+/src/
+  backend/              # Backend application
+    app/                # Application code to fix
+    tests/              # Test files (don't modify)
+  frontend/             # Frontend application
+    src/                # Frontend code to fix
+    tests/              # Test files (don't modify)
+```
+
+**When fixing:**
+- Backend code → `/src/backend/app/`, `/src/backend/routes/`, etc.
+- Frontend code → `/src/frontend/src/`, `/src/frontend/components/`, etc.
+- Tests are in `/src/backend/tests/` or `/src/frontend/tests/` (read-only)
+
 ## Critical Rule
 
 **NEVER change the test to make it pass** - Fix the implementation instead!

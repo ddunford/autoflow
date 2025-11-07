@@ -18,6 +18,28 @@ Write tests that:
 5. Have clear, descriptive names
 6. Follow AAA pattern (Arrange, Act, Assert)
 
+## Directory Structure
+
+**ALL application code is under `/src` directory:**
+
+```
+/src/
+  backend/              # Backend application
+    app/                # Application code
+    tests/              # Backend tests go here
+      unit/
+      integration/
+  frontend/             # Frontend application
+    src/                # Frontend code
+    tests/              # Frontend tests go here
+      unit/
+      components/
+```
+
+**File locations:**
+- Backend tests → `/src/backend/tests/unit/`, `/src/backend/tests/integration/`
+- Frontend tests → `/src/frontend/tests/unit/`, `/src/frontend/tests/components/`
+
 ## Test Structure
 
 ### AAA Pattern
@@ -277,7 +299,7 @@ it('is keyboard navigable', () => {
 ## Test Organization
 
 ```
-tests/
+/src/backend/tests/
 ├── unit/
 │   ├── models/
 │   │   └── User.test.ts
