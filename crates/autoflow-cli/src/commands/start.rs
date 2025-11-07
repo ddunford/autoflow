@@ -442,13 +442,31 @@ Only fix what's broken - preserve all existing content."#,
         runnable
     };
 
-    // Create orchestrator
+    // Create orchestrator with save callback
     let max_iterations = 50;
+
+    // Clone path for closure
+    let sprints_path_for_callback = sprints_path.to_string();
+
     let orchestrator = Orchestrator::new(max_iterations).with_save_callback({
-        move |_sprint| {
-            // TODO: Save just the updated sprint, not whole file
-            // For now, we'll save after all iterations complete
-            Ok(())
+        move |updated_sprint| {
+            // Load current file, update the specific sprint, save back
+            match SprintsYaml::load(&sprints_path_for_callback) {
+                Ok(mut data) => {
+                    // Find and update the sprint
+                    if let Some(sprint) = data.sprints.iter_mut().find(|s| s.id == updated_sprint.id) {
+                        *sprint = updated_sprint.clone();
+                        data.project.last_updated = chrono::Utc::now();
+                        data.save(&sprints_path_for_callback)?;
+                    }
+                    Ok(())
+                }
+                Err(e) => {
+                    // Non-fatal: log but don't fail the sprint
+                    tracing::warn!("Failed to save sprint progress: {}", e);
+                    Ok(())
+                }
+            }
         }
     });
 
@@ -490,6 +508,10 @@ Only fix what's broken - preserve all existing content."#,
                 }
             }
         }
+
+        // Save progress after parallel execution
+        sprints_data.save(sprints_path)
+            .context("Failed to save sprint progress")?;
     } else {
         // Run sequentially
         println!("\n{}", "Mode: Sequential execution".bright_green());
@@ -531,6 +553,10 @@ Only fix what's broken - preserve all existing content."#,
                     }
                 }
             }
+
+            // Save progress after each sprint iteration
+            sprints_data.save(sprints_path)
+                .context("Failed to save sprint progress")?;
         }
     }
 

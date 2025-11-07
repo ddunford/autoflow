@@ -45,11 +45,45 @@ impl WorkflowDefinition {
         self.phases.get(current_idx + 1)
     }
 
+    /// Get the next phase after the current status, skipping fix phases
+    /// Use this when a phase succeeds and should advance to the next work/validation phase
+    pub fn next_phase_skip_fix(&self, current: SprintStatus) -> Option<&WorkflowPhase> {
+        let current_idx = self.phases.iter().position(|p| p.status == current)?;
+
+        // Find the next phase that is NOT a fix phase
+        // A phase is a fix phase if another phase has it as their fix_status
+        let fix_statuses: Vec<SprintStatus> = self.phases
+            .iter()
+            .filter_map(|p| p.fix_status)
+            .collect();
+
+        // Look for the next phase that is not in the fix_statuses list
+        for i in (current_idx + 1)..self.phases.len() {
+            let phase = &self.phases[i];
+            if !fix_statuses.contains(&phase.status) {
+                return Some(phase);
+            }
+        }
+
+        None
+    }
+
     /// Get the fix phase for a given status (if one exists)
     pub fn get_fix_phase(&self, status: SprintStatus) -> Option<&WorkflowPhase> {
         let phase = self.get_phase(status)?;
         let fix_status = phase.fix_status?;
         self.get_phase(fix_status)
+    }
+
+    /// Get the validation phase that a fix phase loops back to
+    /// Returns the phase that has this status as its fix_status
+    pub fn get_validation_phase_for_fix(&self, fix_status: SprintStatus) -> Option<&WorkflowPhase> {
+        self.phases.iter().find(|p| p.fix_status == Some(fix_status))
+    }
+
+    /// Check if a status is a fix phase
+    pub fn is_fix_phase(&self, status: SprintStatus) -> bool {
+        self.phases.iter().any(|p| p.fix_status == Some(status))
     }
 }
 

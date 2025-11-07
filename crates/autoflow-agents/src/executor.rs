@@ -444,3 +444,50 @@ Use the task details, business rules, acceptance criteria, and referenced docume
         doc_sections,
     )
 }
+
+/// Build lightweight context for test runner agents
+/// Test runners only need the sprint goal and test specifications, not full task details
+pub fn build_test_runner_context(sprint: &autoflow_data::Sprint) -> String {
+    // Collect all test specifications from tasks
+    let test_specs: Vec<String> = sprint
+        .tasks
+        .iter()
+        .filter_map(|task| {
+            task.test_specification.as_ref().map(|spec| {
+                format!("**{}:**\n{}", task.title, spec)
+            })
+        })
+        .collect();
+
+    let test_specs_str = if test_specs.is_empty() {
+        "No specific test specifications provided. Run all available tests for this sprint.".to_string()
+    } else {
+        test_specs.join("\n\n")
+    };
+
+    format!(
+        r#"Sprint #{}: {}
+
+# Test Runner Context
+
+Run tests for the code implemented in this sprint.
+
+## Test Specifications
+
+{}
+
+## Instructions
+
+1. Identify and run the appropriate tests for this sprint
+2. Report all test results clearly
+3. **REQUIRED**: End your response with one of these markers:
+   - `TEST_RESULT: PASSED` if all tests pass
+   - `TEST_RESULT: FAILED` if any tests fail
+
+The orchestrator uses this marker to determine workflow progression.
+"#,
+        sprint.id,
+        sprint.goal,
+        test_specs_str
+    )
+}

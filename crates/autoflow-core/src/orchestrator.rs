@@ -65,19 +65,38 @@ impl Orchestrator {
                         // Reset retry count for this status
                         retry_count.insert(current_status, 0);
 
-                        // Use workflow to determine next phase
                         let workflow = get_workflow_definition(sprint.workflow_type);
-                        if let Some(next_phase) = workflow.next_phase(current_status) {
-                            sprint.status = next_phase.status;
-                            sprint.last_updated = Utc::now();
 
-                            tracing::info!(
-                                "Sprint {} advanced from {:?} to {:?} (workflow: {:?})",
-                                sprint.id,
-                                current_status,
-                                sprint.status,
-                                sprint.workflow_type
-                            );
+                        // If this is a fix phase, loop back to the validation phase
+                        // Otherwise, advance to the next phase (skipping fix phases)
+                        let next_status = if workflow.is_fix_phase(current_status) {
+                            workflow.get_validation_phase_for_fix(current_status)
+                                .map(|p| {
+                                    tracing::info!(
+                                        "Sprint {} completed fix phase {:?}, looping back to validation {:?}",
+                                        sprint.id,
+                                        current_status,
+                                        p.status
+                                    );
+                                    p.status
+                                })
+                        } else {
+                            workflow.next_phase_skip_fix(current_status)
+                                .map(|p| {
+                                    tracing::info!(
+                                        "Sprint {} advanced from {:?} to {:?} (workflow: {:?})",
+                                        sprint.id,
+                                        current_status,
+                                        p.status,
+                                        sprint.workflow_type
+                                    );
+                                    p.status
+                                })
+                        };
+
+                        if let Some(status) = next_status {
+                            sprint.status = status;
+                            sprint.last_updated = Utc::now();
                         } else {
                             tracing::warn!(
                                 "Sprint {} at {:?} has no next phase in workflow",
@@ -175,7 +194,7 @@ impl Orchestrator {
     /// Execute a phase based on sprint status
     /// Returns Ok(true) if should advance, Ok(false) if should retry, Err if failed
     async fn execute_phase(&self, sprint: &Sprint) -> Result<bool> {
-        use autoflow_agents::{build_agent_context, execute_agent};
+        use autoflow_agents::{build_agent_context, build_test_runner_context, execute_agent};
 
         // Get workflow definition for this sprint
         let workflow = get_workflow_definition(sprint.workflow_type);
@@ -210,7 +229,20 @@ impl Orchestrator {
         }
 
         let agent_name = phase.agent;
-        let context = build_agent_context(sprint);
+
+        // Use lightweight context for test runner agents to reduce token usage
+        let context = match sprint.status {
+            SprintStatus::RunUnitTests
+            | SprintStatus::RunE2eTests
+            | SprintStatus::WriteE2eTests => {
+                tracing::debug!("Using lightweight test runner context for {:?}", sprint.status);
+                build_test_runner_context(sprint)
+            }
+            _ => {
+                build_agent_context(sprint)
+            }
+        };
+
         let max_turns = phase.max_turns;
 
         tracing::info!(
@@ -231,17 +263,25 @@ impl Orchestrator {
 
             // Determine if we should advance or retry based on status
             let should_advance = match sprint.status {
-                // Test phases - check if tests passed
+                // Test phases - check if tests actually passed
                 SprintStatus::RunUnitTests | SprintStatus::RunE2eTests => {
-                    // TODO: Parse test results from agent output
-                    // For now, assume success means tests passed
-                    true
+                    let passed = parse_test_results(&result.output);
+                    if passed {
+                        tracing::info!("Tests passed - advancing to next phase");
+                    } else {
+                        tracing::warn!("Tests failed - moving to fix phase");
+                    }
+                    passed
                 }
-                // Review phase - check if review passed
+                // Review phase - check if review actually passed
                 SprintStatus::CodeReview => {
-                    // TODO: Parse review results
-                    // For now, assume success means review passed
-                    true
+                    let passed = parse_review_results(&result.output);
+                    if passed {
+                        tracing::info!("Code review passed - advancing to next phase");
+                    } else {
+                        tracing::warn!("Code review failed - moving to fix phase");
+                    }
+                    passed
                 }
                 // All other phases advance on success
                 _ => true,
@@ -268,4 +308,52 @@ impl Orchestrator {
 
         Ok(results)
     }
+}
+
+/// Parse test results from agent output
+/// Returns true if tests passed, false if they failed
+///
+/// Looks for standardized output marker: "TEST_RESULT: PASSED" or "TEST_RESULT: FAILED"
+/// This format is enforced in all test-runner agent prompts for reliable parsing.
+fn parse_test_results(output: &str) -> bool {
+    // Look for the standardized marker first
+    if output.contains("TEST_RESULT: PASSED") {
+        return true;
+    }
+
+    if output.contains("TEST_RESULT: FAILED") {
+        return false;
+    }
+
+    // Fallback: if no standardized marker found, log warning and assume passed
+    // This allows backward compatibility but we should fix agents to use the marker
+    tracing::warn!(
+        "Test output missing standardized marker 'TEST_RESULT: PASSED/FAILED'. \
+         Defaulting to PASSED. Please ensure test-runner agents output the required marker."
+    );
+    true
+}
+
+/// Parse code review results from agent output
+/// Returns true if review passed, false if it failed
+///
+/// Looks for standardized output marker: "REVIEW_STATUS: PASSED" or "REVIEW_STATUS: FAILED"
+/// This format is enforced in the reviewer agent prompt for reliable parsing.
+fn parse_review_results(output: &str) -> bool {
+    // Look for the standardized marker first
+    if output.contains("REVIEW_STATUS: PASSED") {
+        return true;
+    }
+
+    if output.contains("REVIEW_STATUS: FAILED") {
+        return false;
+    }
+
+    // Fallback: if no standardized marker found, log warning and assume passed
+    // This allows backward compatibility but we should fix the reviewer agent to use the marker
+    tracing::warn!(
+        "Review output missing standardized marker 'REVIEW_STATUS: PASSED/FAILED'. \
+         Defaulting to PASSED. Please ensure reviewer agent outputs the required marker."
+    );
+    true
 }
