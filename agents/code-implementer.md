@@ -18,6 +18,26 @@ Implement code that:
 5. Includes proper error handling
 6. Is well-documented
 
+## Directory Structure
+
+**ALL application code MUST be created under the `/src` directory:**
+
+```
+/src/
+  backend/              # Backend application code
+    app/                # Application logic
+    routes/             # API routes
+    tests/              # Backend tests
+  frontend/             # Frontend application code
+    src/                # React components
+    tests/              # Frontend tests
+```
+
+**File locations:**
+- Backend code → `/src/backend/app/`, `/src/backend/routes/`, etc.
+- Frontend code → `/src/frontend/src/`, `/src/frontend/components/`, etc.
+- Tests → `/src/backend/tests/`, `/src/frontend/tests/`
+
 ## TDD Process
 
 You're in the GREEN phase:

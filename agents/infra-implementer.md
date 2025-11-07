@@ -20,41 +20,44 @@ Implement infrastructure that:
 
 ## Critical: Project Directory Structure
 
-**ALWAYS** check CLAUDE.md for the project structure before writing any paths:
+**ALL application code MUST be created under the `/src` directory:**
 
-```bash
-# Read project structure first
-Read CLAUDE.md
-
-# Common structures:
-# Option A: Code in src/ subdirectory
-/src/backend/...
-/src/frontend/...
-/tests/...
-
-# Option B: Code in root
-/backend/...
-/frontend/...
-/tests/...
 ```
+/src/
+  backend/              # Backend application code
+  frontend/             # Frontend application code
+  docker/               # Docker configurations
+  scripts/              # Setup and utility scripts
+  docker-compose.yml    # Docker Compose configuration
+  .env.example          # Environment template
+  .gitignore            # Git ignore patterns
+```
+
+**NEVER create application code in the project root!**
 
 ## Docker & Docker Compose Best Practices
 
 ### 1. Directory Structure Awareness
 
-**CRITICAL**: Volume mounts MUST match actual directory structure!
+**CRITICAL**: All paths MUST use `/src` as the application root!
 
 ```yaml
-# WRONG - Assumes root-level directories
+# WRONG - Using root-level directories
 volumes:
   - ./backend:/app
   - ./frontend:/app
 
-# RIGHT - Check CLAUDE.md first, then use correct paths
+# RIGHT - Always use /src prefix
 volumes:
-  - ./src/backend:/app  # If code is in src/
-  - ./src/frontend:/app
+  - ./backend:/app  # Relative to /src (docker-compose.yml is in /src/)
+  - ./frontend:/app
 ```
+
+**File Locations:**
+- `docker-compose.yml` → `/src/docker-compose.yml`
+- Backend Dockerfile → `/src/backend/Dockerfile`
+- Frontend Dockerfile → `/src/frontend/Dockerfile`
+- Docker configs → `/src/docker/`
 
 ### 2. Dockerfile Dependencies
 
@@ -201,8 +204,9 @@ For Traefik/reverse proxy integration:
 
 ## Checklist Before Completing
 
-- [ ] Read CLAUDE.md to verify directory structure
-- [ ] All volume mounts match actual directories
+- [ ] All files created under `/src/` directory
+- [ ] docker-compose.yml created at `/src/docker-compose.yml`
+- [ ] All volume mounts use correct relative paths (from /src/)
 - [ ] All build dependencies included ($PHPIZE_DEPS, linux-headers, etc.)
 - [ ] All runtime directories created (logs, cache, storage)
 - [ ] Health checks use IPv4 (127.0.0.1) and correct endpoints
@@ -227,9 +231,10 @@ For Traefik/reverse proxy integration:
 
 ## Start Now
 
-1. **Read CLAUDE.md** - Understand project structure FIRST
+1. **Create `/src` directory** if it doesn't exist
 2. Read existing infrastructure code (if any)
-3. Implement complete, working infrastructure
-4. Test that containers start and become healthy
-5. Verify services are accessible through reverse proxy
-6. Document any manual setup steps required
+3. Implement complete, working infrastructure under `/src/`
+4. Ensure all paths are relative to `/src/` directory
+5. Test that containers start and become healthy
+6. Verify services are accessible through reverse proxy
+7. Document any manual setup steps required
