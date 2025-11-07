@@ -73,9 +73,31 @@ pub async fn run(parallel: bool, sprint: Option<u32>) -> anyhow::Result<()> {
         let validation_errors = SprintsYaml::validate_all_errors(sprints_path);
 
         if let Err(all_errors) = validation_errors {
-        // SPRINTS.yml exists but has validation errors - try to fix ALL at once
+        // SPRINTS.yml exists but has validation errors
         println!("  {} SPRINTS.yml validation failed", "⚠".yellow());
-        println!("  {} Attempting to fix validation errors...", "→".yellow());
+
+        // Check if there are any in-progress sprints - if so, skip regeneration and resume
+        if let Ok(existing_data) = SprintsYaml::load_without_validation(sprints_path) {
+            let has_in_progress = existing_data.sprints.iter().any(|s| matches!(
+                s.status,
+                SprintStatus::WriteUnitTests
+                    | SprintStatus::WriteCode
+                    | SprintStatus::CodeReview
+                    | SprintStatus::ReviewFix
+                    | SprintStatus::RunUnitTests
+                    | SprintStatus::UnitFix
+                    | SprintStatus::WriteE2eTests
+                    | SprintStatus::RunE2eTests
+                    | SprintStatus::E2eFix
+            ));
+
+            if has_in_progress {
+                println!("  {} Found in-progress sprints - resuming execution...", "→".bright_cyan());
+                println!("  {} Skipping regeneration to preserve sprint progress", "ℹ".bright_cyan());
+                existing_data
+            } else {
+                // No in-progress work, safe to attempt fix
+                println!("  {} Attempting to fix validation errors...", "→".yellow());
 
         let fix_context = format!(
             r#"VALIDATION ERRORS FOUND:
@@ -128,6 +150,11 @@ Only fix what's broken - preserve all existing content and sprint progress."#,
             _ => {
                 bail!("Failed to fix SPRINTS.yml automatically.\n\nOriginal error: {}\n\nPlease manually fix the file or delete it and run 'autoflow create'", all_errors);
             }
+        }
+            }
+        } else {
+            // Failed to load even without validation
+            bail!("SPRINTS.yml exists but cannot be loaded:\n{}\n\nPlease manually fix the file or delete it and run 'autoflow create'", all_errors);
         }
         } else {
             // Validation passed, load the file

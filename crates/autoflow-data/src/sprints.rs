@@ -19,6 +19,14 @@ impl SprintsYaml {
         Ok(sprints)
     }
 
+    /// Load SPRINTS.yml without schema validation
+    /// Used to check sprint status when resuming after interruption
+    pub fn load_without_validation<P: AsRef<Path>>(path: P) -> Result<Self> {
+        let content = fs::read_to_string(path)?;
+        let sprints = serde_yaml::from_str(&content)?;
+        Ok(sprints)
+    }
+
     pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let content = serde_yaml::to_string(self)?;
         fs::write(path, content)?;
