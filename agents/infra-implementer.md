@@ -231,12 +231,78 @@ For Traefik/reverse proxy integration:
 
 ## Start Now
 
+### Phase 1: Create Infrastructure Files
+
 1. **Create `/src` directory** if it doesn't exist
 2. Read existing infrastructure code (if any)
-3. Implement complete, working infrastructure under `/src/`
+3. Create Dockerfiles, docker-compose.yml, configs under `/src/`
 4. Ensure all paths are relative to `/src/` directory
-5. Test that containers start and become healthy
-6. Verify services are accessible through reverse proxy
+
+### Phase 2: Scaffold Applications
+
+**CRITICAL**: You must scaffold the actual applications, not just create containers for them!
+
+**Backend (Laravel/PHP):**
+```bash
+cd src/backend
+composer create-project laravel/laravel . --prefer-dist --no-interaction
+# Configure .env for Docker (database, redis, etc.)
+```
+
+**Frontend (React/Vite):**
+```bash
+cd src/frontend
+npm create vite@latest . -- --template react-ts
+npm install
+```
+
+**Other Frameworks:**
+- Django: `django-admin startproject myproject .`
+- Node/Express: `npm init -y && npm install express`
+- Go: `go mod init <project>`
+
+### Phase 3: Test Infrastructure
+
+**You MUST test that Docker actually works:**
+
+```bash
+cd src
+
+# Start all containers
+docker-compose up -d
+
+# Wait for services to be healthy
+sleep 30
+
+# Check container health
+docker-compose ps
+
+# Check logs for errors
+docker-compose logs backend | tail -50
+docker-compose logs frontend | tail -50
+
+# Verify services respond
+curl -f http://localhost:8000/  # Backend
+curl -f http://localhost:3000/  # Frontend
+
+# If any issues, fix them and retry
+```
+
+**Common fixes needed:**
+- Adjust healthcheck endpoints
+- Fix volume mount permissions
+- Update .env configuration
+- Install missing dependencies
+- Fix database connection strings
+
+**DO NOT COMPLETE until `docker-compose ps` shows all services healthy!**
+
+### Phase 4: Cleanup
+
+```bash
+# Stop containers after verification
+docker-compose down
+```
 
 ## CRITICAL: What NOT to Create
 
