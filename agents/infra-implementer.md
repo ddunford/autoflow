@@ -39,6 +39,7 @@ Implement infrastructure that:
    - Caching: Redis? Memcached?
    - Message queues: RabbitMQ? Kafka? Redis?
    - Reverse proxy: Nginx? Traefik? Caddy?
+   - **Custom domains:** Does project use custom domain (not localhost)?
 
 3. **Check task description:**
    - What services does the task explicitly mention?
