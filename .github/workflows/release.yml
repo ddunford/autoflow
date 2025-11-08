@@ -76,25 +76,26 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux
+          # Linux (test first)
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             archive: tar.gz
 
-          # macOS Intel
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            archive: tar.gz
+          # TODO: Enable other platforms once Linux works
+          # # macOS Intel
+          # - os: macos-latest
+          #   target: x86_64-apple-darwin
+          #   archive: tar.gz
 
-          # macOS Apple Silicon
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            archive: tar.gz
+          # # macOS Apple Silicon
+          # - os: macos-latest
+          #   target: aarch64-apple-darwin
+          #   archive: tar.gz
 
-          # Windows
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            archive: zip
+          # # Windows
+          # - os: windows-latest
+          #   target: x86_64-pc-windows-msvc
+          #   archive: zip
 
     steps:
       - name: Checkout code
