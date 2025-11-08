@@ -12,6 +12,10 @@ on:
         required: true
         type: string
 
+# Required for creating releases
+permissions:
+  contents: write
+
 env:
   CARGO_TERM_COLOR: always
 
