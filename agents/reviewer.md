@@ -64,6 +64,97 @@ Review code for:
 - [ ] README or documentation explains project structure
 - [ ] No stale commented code or TODO comments without issues
 
+## CRITICAL: Development vs Production Configurations
+
+**Many security-sensitive settings are ACCEPTABLE in development but MUST be locked down in production.**
+
+### Environment Detection
+
+Before flagging security issues, determine the environment:
+
+1. **Check file names:**
+   - `.env`, `.env.local`, `.env.development` → Development
+   - `.env.production`, `.env.prod` → Production
+   - `docker-compose.yml` → Development
+   - `docker-compose.prod.yml` → Production
+   - `vite.config.ts` with `mode === 'development'` → Development-specific
+
+2. **Check environment variables:**
+   - `APP_ENV=local` or `NODE_ENV=development` → Development
+   - `APP_ENV=production` or `NODE_ENV=production` → Production
+
+3. **Context clues:**
+   - File in `/src` directory with no production marker → Assume development
+
+### Settings That Are OK in Development, But NOT Production
+
+**Vite/Frontend:**
+```typescript
+// ✅ OK in development
+allowedHosts: 'all'  // In vite.config.ts with mode === 'development'
+
+// ❌ FAIL in production
+allowedHosts: 'all'  // In .env.production or production config
+```
+
+**Laravel/Backend:**
+```php
+// ✅ OK in development (.env or .env.development)
+APP_DEBUG=true
+CORS_ALLOWED_ORIGINS_PATTERN=  # Empty/permissive
+
+// ❌ FAIL in production (.env.production)
+APP_DEBUG=true  # Must be false
+CORS_ALLOWED_ORIGINS_PATTERN=  # Must be specific pattern
+```
+
+**Docker:**
+```yaml
+# ✅ OK in docker-compose.yml (development)
+user: "${UID:-1000}:${GID:-1000}"  # Good for dev
+volumes:
+  - ./backend:/app  # Bind mount for hot reload
+
+# ✅ OK in docker-compose.prod.yml (production)
+# No user directive (runs as defined in Dockerfile)
+volumes:
+  - backend_data:/app/storage  # Named volume only
+```
+
+### Review Strategy
+
+When reviewing:
+1. **Do NOT flag development-appropriate settings** in development configs
+2. **Flag missing production configs** if only development configs exist
+3. **Flag insecure settings in production configs** (debug mode, permissive CORS, etc.)
+4. **Suggest creating separate configs** if only one environment is configured
+
+### Examples
+
+**Good - Separate Configs:**
+```
+✅ vite.config.ts uses mode === 'development' ? 'all' : env.ALLOWED_HOSTS
+✅ .env has APP_DEBUG=true
+✅ .env.production has APP_DEBUG=false
+✅ docker-compose.yml for development
+✅ docker-compose.prod.yml for production
+```
+
+**Bad - No Production Config:**
+```
+❌ Only .env exists with APP_DEBUG=true
+❌ vite.config.ts always uses allowedHosts: 'all'
+❌ No docker-compose.prod.yml
+→ Flag: "Missing production configuration. Create .env.production with secure settings."
+```
+
+**Bad - Insecure Production:**
+```
+❌ .env.production has APP_DEBUG=true
+❌ .env.production has no CORS_ALLOWED_ORIGINS_PATTERN
+→ Flag: "Production config has insecure settings. Set APP_DEBUG=false and configure CORS."
+```
+
 ## Output Format
 
 You can provide detailed review information in any format, but you **MUST** end your response with:
