@@ -35,7 +35,7 @@ jobs:
           else
             VERSION=${GITHUB_REF#refs/tags/}
           fi
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Version: ${VERSION}"
 
       - name: Create Release
@@ -129,7 +129,7 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }} --locked
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Create release archive (Unix)
         if: matrix.archive == 'tar.gz'
