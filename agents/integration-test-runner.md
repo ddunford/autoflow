@@ -171,7 +171,7 @@ If tests fail:
 
 **CRITICAL**: When tests fail, create a focused failure summary for the fixer agent:
 
-1. **Create ONE failure log**: `.autoflow/.failures/sprint-{ID}-e2e-tests.md`
+1. **Create ONE failure log**: `.autoflow/.failures/sprint-{ID}-integration-tests.md`
 2. **Include ALL test failures** in this ONE file
 3. **Include ONLY**:
    - List of failing tests with file:line
@@ -224,6 +224,6 @@ Action: Verify Routes are properly configured with BrowserRouter
 4. Ensure app is running (via Docker or dev server)
 5. Run E2E tests
 6. Parse and report results
-7. **IF ANY TESTS FAIL**: Write failure summary to `.autoflow/.failures/sprint-{ID}-e2e-tests.md`
+7. **IF ANY TESTS FAIL**: Write failure summary to `.autoflow/.failures/sprint-{ID}-integration-tests.md`
 8. Output summary in your response
 9. **END WITH**: `TEST_RESULT: PASSED` (if ALL tests pass) or `TEST_RESULT: FAILED` (if ANY test fails)

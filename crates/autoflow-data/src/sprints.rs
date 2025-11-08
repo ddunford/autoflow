@@ -261,6 +261,9 @@ pub struct Sprint {
 
     #[serde(default)]
     pub must_complete_first: bool,
+
+    #[serde(default)]
+    pub failure_reports: Vec<String>,
 }
 
 impl Sprint {

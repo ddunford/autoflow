@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 
 mod commands;
+mod sync;
 
 #[derive(Parser)]
 #[command(name = "autoflow")]
@@ -51,6 +52,10 @@ enum Commands {
         /// Run specific sprint by ID
         #[arg(short, long)]
         sprint: Option<u32>,
+
+        /// Disable live streaming logs (enabled by default)
+        #[arg(long)]
+        no_live: bool,
     },
 
     /// Show sprint progress and status
@@ -140,6 +145,17 @@ enum Commands {
     /// Manage MCP servers
     #[command(subcommand)]
     Mcp(McpCommands),
+
+    /// View agent execution logs
+    Logs {
+        /// Follow log output (tail -f style)
+        #[arg(short, long)]
+        follow: bool,
+
+        /// View live streaming logs (.jsonl format)
+        #[arg(short, long)]
+        live: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -251,6 +267,13 @@ async fn main() -> anyhow::Result<()> {
         .with_target(false)
         .init();
 
+    // Auto-sync agents and skills to ~/.claude/
+    if let Err(e) = sync::sync_agents_and_skills().await {
+        if cli.verbose {
+            eprintln!("Warning: Failed to sync agents/skills: {}", e);
+        }
+    }
+
     // Execute command
     match cli.command {
         Commands::Install { force } => {
@@ -262,8 +285,10 @@ async fn main() -> anyhow::Result<()> {
         Commands::Init { template } => {
             commands::init::run(template).await?;
         }
-        Commands::Start { parallel, sprint } => {
-            commands::start::run(parallel, sprint).await?;
+        Commands::Start { parallel, sprint, no_live } => {
+            // Live logging is enabled by default, disabled with --no-live
+            let live = !no_live;
+            commands::start::run(parallel, sprint, live).await?;
         }
         Commands::Status { json } => {
             commands::status::run(json).await?;
@@ -323,6 +348,9 @@ async fn main() -> anyhow::Result<()> {
                 commands::mcp::run_info(server).await?;
             }
         },
+        Commands::Logs { follow, live } => {
+            commands::logs::run(follow, live).await?;
+        }
     }
 
     Ok(())

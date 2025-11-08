@@ -61,10 +61,11 @@ pub fn commit_project_changes(project_path: &Path, sprint: &Sprint, message: &st
         .map_err(|e| AutoFlowError::ValidationError(format!("Failed to create commit: {}", e)))?;
 
     if commit_result.status.success() {
-        tracing::info!("✓ Created git commit: {}", message);
+        let output = String::from_utf8_lossy(&commit_result.stdout);
+        tracing::info!("✓ Created git commit: {} - {}", message, output.trim());
     } else {
         let error = String::from_utf8_lossy(&commit_result.stderr);
-        tracing::warn!("Failed to create commit: {}", error);
+        tracing::warn!("Failed to create commit: {} - Error: {}", message, error.trim());
     }
 
     Ok(())

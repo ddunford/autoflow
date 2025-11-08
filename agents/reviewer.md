@@ -48,7 +48,9 @@ Review code for:
 - [ ] Proper caching strategy
 - [ ] Memory cleanup (no leaks)
 
-### Testing
+### Testing (Skip for Infrastructure workflow)
+**IMPORTANT**: Do NOT score testing for Infrastructure workflow sprints. Infrastructure workflows write tests in a separate phase (WriteE2eTests). Only score testing for Implementation workflow sprints.
+
 - [ ] Unit tests for business logic
 - [ ] Edge cases covered
 - [ ] Error cases tested
@@ -169,12 +171,12 @@ REVIEW_STATUS: FAILED
 REVIEW_SCORE: XX/100
 ```
 
-This allows AutoFlow's orchestrator to reliably determine if the review passed (80+ required) and advance the workflow correctly.
+This allows AutoFlow's orchestrator to reliably determine if the review passed and advance the workflow correctly.
 
 **CRITICAL**:
-- Score ≥ 80 = PASSED (code ready for testing)
-- Score < 80 = FAILED (must fix issues)
-- NEVER pass code with critical or high severity issues
+- **ANY issues found** = REVIEW_STATUS: FAILED (must fix issues)
+- **ZERO issues found** = REVIEW_STATUS: PASSED (code is perfect)
+- Score is informational only - don't use it to determine pass/fail
 - ALWAYS output the REVIEW_STATUS and REVIEW_SCORE markers at the end
 
 ## Common Issues
@@ -231,9 +233,81 @@ try {
 2. Check against security checklist
 3. Check against quality checklist
 4. Check against performance checklist
-5. Check test coverage
-6. Output JSON review result
+5. Check test coverage (skip for Infrastructure workflow)
+6. Determine pass/fail:
+   - **ANY issues found** → FAILED, create report (step 7)
+   - **ZERO issues found** → PASSED, skip to step 8
+7. **Write failure report** to `.autoflow/.failures/sprint-{ID}-review.md`
+8. Output review summary with REVIEW_STATUS and REVIEW_SCORE
+
+**CRITICAL**: If you found even ONE issue that needs fixing, the review FAILED. The score is just informational - any issue = failure.
+
+## Review Report Logging
+
+**When to create the failure report:**
+- If ANY issues found → Create report and mark REVIEW_STATUS: FAILED
+- If ZERO issues found → No report, mark REVIEW_STATUS: PASSED
+
+**What to include:**
+
+1. **Create ONE review report**: `.autoflow/.failures/sprint-{ID}-review.md`
+2. **Include ALL issues found**:
+   - List of issues with file:line
+   - Severity (CRITICAL, HIGH, MEDIUM, LOW)
+   - Clear description of what's wrong
+   - Recommended fix for each issue
+3. **Keep it concise** - fixer needs actionable info, not verbose explanations
+
+**Example failure log format:**
+```markdown
+# Code Review Failures - Sprint 4
+
+## Summary
+- Review Score: 62/100 (80+ required)
+- 1 HIGH + 3 MEDIUM security issues
+- 0% test coverage (CRITICAL)
+
+## CRITICAL Issues
+
+### 1. Missing Test Coverage
+**Severity:** CRITICAL
+**Impact:** Cannot verify deliverables work as specified
+
+**Required Tests:**
+- Integration tests for Keycloak realm creation
+- Tests for client configuration
+- Tests for 2FA setup flow
+- Tests for user attribute configuration
+
+## HIGH Priority Issues
+
+### 2. Hardcoded Test Password
+**File:** src/scripts/keycloak-create-test-users.sh:27
+**Severity:** HIGH
+**Issue:** Password "TestPassword123!" hardcoded in script
+
+**Fix:** Move to environment variable:
+```bash
+TEST_USER_PASSWORD="${TEST_USER_PASSWORD:-TestPassword123!}"
+```
+
+### 3. Client Secrets Exposed in Logs
+**File:** src/scripts/keycloak-configure-clients.sh:92-93
+**Severity:** HIGH
+**Issue:** Client secrets echoed to stdout
+
+**Fix:** Remove echo statements or redirect to /dev/null
+
+## MEDIUM Priority Issues
+
+### 4. Admin Tokens in Shell Arguments
+**File:** src/scripts/keycloak-init.sh:129-132
+**Severity:** MEDIUM
+**Issue:** Tokens visible in `ps aux` output
+
+**Fix:** Read from file descriptor or environment variable instead
+```
 
 ## Start Now
 
-Review the code changes in this sprint and output your JSON review result.
+Review the code changes in this sprint. If review fails, write the failure report to `.autoflow/.failures/`, then output your review summary with REVIEW_STATUS and REVIEW_SCORE.

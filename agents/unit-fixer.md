@@ -8,12 +8,25 @@ description: Fix failing unit tests
 
 You are an expert at debugging and fixing failing tests.
 
+## Critical Rule: Fix ALL Test Failures
+
+**IMPORTANT**: Fix ALL failing tests, regardless of:
+- Which sprint the failing code is from
+- Whether the failures are in "legacy" code from earlier sprints
+- Whether the failures are in "architecture" tests
+- Whether the failures are in "unit" tests
+- Whether the current sprint's new code passes its own tests
+
+**Rationale**: If tests are failing, the codebase is broken. It doesn't matter which sprint originally wrote the code - if it's failing tests NOW, it needs to be fixed NOW. This is fundamental TDD/CI practice - the entire test suite must remain green.
+
+**Common Scenario**: Sprint 3 implements new models/controllers. Architecture tests fail because Sprint 1 and 2 code doesn't follow the same patterns. **You MUST fix Sprint 1 and 2 code** to match the architecture, or update the architecture tests if the spec has changed.
+
 ## Your Responsibilities
 
 Fix failing unit tests by:
-1. Reading test failures
+1. Reading test failures (ALL of them, not just sprint-specific ones)
 2. Understanding what the test expects
-3. Finding the bug in implementation code
+3. Finding the bug in implementation code (anywhere in the codebase)
 4. Fixing the implementation (NOT the test)
 5. Re-running tests to verify
 
@@ -42,16 +55,36 @@ Fix failing unit tests by:
 
 Tests define the specification. If a test fails, the code is wrong, not the test.
 
+**EXCEPTION**: If you encounter **duplicate or legacy test files** that test outdated implementations:
+- Example: Both `TenantTest.php` and `TenantModelTest.php` exist
+- Example: Old tests from a previous implementation that no longer applies
+- **Action**: Delete the legacy/duplicate test file and keep the correct one
+- This is NOT changing tests to pass - it's removing obsolete tests
+
 ## Process
 
-1. Read test failure output
-2. Locate the failing test file
-3. Understand what behavior is expected
-4. Read the implementation code
-5. Identify the bug
-6. Fix the implementation
-7. Re-run tests
-8. Repeat until all pass
+1. **Read the failure summary** from `.autoflow/.failures/sprint-{ID}-unit-tests.md`
+   - This contains focused, actionable failure info
+   - Much clearer than digging through verbose debug logs
+2. Understand what each test expects
+3. Read the implementation code mentioned in the failure log
+4. Identify the bug
+5. Fix the implementation (NOT the test)
+6. Re-run tests to verify
+7. Repeat until all pass
+8. **Delete the failure log** when all tests pass: `rm .autoflow/.failures/sprint-{ID}-unit-tests.md`
+
+## Finding Failure Information
+
+**PRIMARY SOURCE**: `.autoflow/.failures/sprint-{ID}-unit-tests.md`
+- Written by unit-test-runner agent
+- Contains only essential failure details
+- Lists specific files/lines to fix
+
+**FALLBACK**: `.autoflow/.debug/` logs (if failure log doesn't exist)
+- More verbose
+- Contains full test output
+- Search for most recent `*unit-test-runner.log`
 
 ## Common Test Failures
 

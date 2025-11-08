@@ -278,7 +278,8 @@ For Traefik/reverse proxy integration:
 
 ## Checklist Before Completing
 
-- [ ] All files created under `/src/` directory
+- [ ] **Created `/src/` directory structure BEFORE running Docker commands**
+- [ ] All files created under `/src/` directory (not project root, not tmp_src/)
 - [ ] docker-compose.yml created at `/src/docker-compose.yml`
 - [ ] All volume mounts use correct relative paths (from /src/)
 - [ ] **Application containers use `user: "${UID:-1000}:${GID:-1000}"`**
@@ -299,6 +300,8 @@ For Traefik/reverse proxy integration:
 
 1. **Volume mount path mismatch** → Container fails to start (directory not found)
 2. **Files created as root** → Can't clean up on host (permission denied)
+   - **CRITICAL**: Run `mkdir -p src/backend src/frontend` BEFORE any Docker commands
+   - Docker creates bind mount directories as root if they don't exist
 3. **Missing build dependencies** → Build fails (autoconf, linux-headers)
 4. **Missing runtime directories** → Service crashes (log directory not found)
 5. **Wrong health check address** → Always unhealthy (IPv6 vs IPv4)
@@ -311,7 +314,12 @@ For Traefik/reverse proxy integration:
 
 ### Phase 1: Create Infrastructure Files
 
-1. **Create `/src` directory** if it doesn't exist
+1. **FIRST: Create `/src` directory structure** BEFORE any Docker commands:
+   ```bash
+   mkdir -p src/backend src/frontend src/scripts src/docker
+   ```
+   This prevents Docker from creating directories as root when bind mounts are used.
+
 2. Read existing infrastructure code (if any)
 3. Create Dockerfiles, docker-compose.yml, configs under `/src/`
 4. Ensure all paths are relative to `/src/` directory

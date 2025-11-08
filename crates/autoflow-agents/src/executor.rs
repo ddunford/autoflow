@@ -23,17 +23,28 @@ struct AgentDef {
     system_prompt: String,
 }
 
-/// Load agent definition from ~/.claude/agents/{name}.agent.md
+/// Load agent definition from agents directory
+/// Looks in order:
+/// 1. ./agents/ (project-local override)
+/// 2. ~/.claude/agents/ (auto-synced on startup)
 async fn load_agent_def(agent_name: &str) -> Result<AgentDef> {
-    let home = std::env::var("HOME").context("HOME env var not set")?;
-    let agent_path = PathBuf::from(home)
-        .join(".claude")
-        .join("agents")
-        .join(format!("{}.agent.md", agent_name));
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/root".to_string());
 
-    if !agent_path.exists() {
-        bail!("Agent file not found: {:?}", agent_path);
-    }
+    let possible_paths = vec![
+        // Project-local agents directory (for development/testing)
+        PathBuf::from("./agents").join(format!("{}.md", agent_name)),
+        // ~/.claude/agents/ (auto-synced from source on every run)
+        PathBuf::from(home)
+            .join(".claude")
+            .join("agents")
+            .join(format!("{}.agent.md", agent_name)),
+    ];
+
+    let agent_path = possible_paths
+        .iter()
+        .find(|p| p.exists())
+        .ok_or_else(|| anyhow::anyhow!("Agent file not found for '{}'. Tried: {:?}", agent_name, possible_paths))?
+        .clone();
 
     let content = tokio::fs::read_to_string(&agent_path)
         .await
@@ -96,7 +107,7 @@ pub async fn execute_agent(
     agent_name: &str,
     context: &str,
     _max_turns: u32,
-    _sprint_id: Option<u32>,
+    sprint_id: Option<u32>,
 ) -> Result<AgentResult> {
     tracing::info!("Executing agent: {}", agent_name);
 
@@ -105,6 +116,23 @@ pub async fn execute_agent(
     if let Some(ref logger) = debug_logger {
         let _ = logger.log_agent_start(agent_name, context);
     }
+
+    // Initialize live logger if enabled
+    let live_enabled = std::env::var("AUTOFLOW_LIVE_LOGGING").unwrap_or_default() == "1";
+    let live_logger = if live_enabled {
+        match crate::live_logger::LiveLogger::new(agent_name, sprint_id) {
+            Ok(logger) => {
+                tracing::info!("Live logging enabled: {:?}", logger.path());
+                Some(logger)
+            }
+            Err(e) => {
+                tracing::warn!("Failed to initialize live logger: {}", e);
+                None
+            }
+        }
+    } else {
+        None
+    };
 
     // Load agent definition
     let agent_def = load_agent_def(agent_name).await?;
@@ -148,14 +176,40 @@ pub async fn execute_agent(
     let debug_mode = std::env::var("AUTOFLOW_DEBUG").unwrap_or_default() == "1"
         || std::env::var("RUST_LOG").unwrap_or_default().contains("debug");
 
+    // Log agent start to live logger
+    if let Some(ref logger) = live_logger {
+        let _ = logger.log_agent_start(agent_name, &agent_def.model);
+    }
+
+    // Use stream-json format when live logging is enabled for event capture
+    let output_format = if live_logger.is_some() {
+        "stream-json"
+    } else {
+        "text"
+    };
+
     // Execute using claude CLI in print mode
-    let mut child = Command::new("claude")
-        .arg("--print")
+    let mut cmd = Command::new("claude");
+    cmd.arg("--print")
         .arg("--output-format")
-        .arg("text")
+        .arg(output_format)
         .arg("--model")
         .arg(&agent_def.model)
-        .arg("--dangerously-skip-permissions") // For automated execution
+        .arg("--dangerously-skip-permissions"); // For automated execution
+
+    // Pass tools to claude CLI
+    if !agent_def.tools.is_empty() {
+        cmd.arg("--allowedTools");
+        cmd.arg(agent_def.tools.join(" "));
+    }
+
+    // stream-json requires --verbose flag with --print
+    if live_logger.is_some() {
+        cmd.arg("--verbose");
+        cmd.arg("--include-partial-messages"); // Include partial message chunks for live streaming
+    }
+
+    let mut child = cmd
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -179,11 +233,50 @@ pub async fn execute_agent(
     let mut stdout_reader = BufReader::new(stdout).lines();
 
     let mut output = String::new();
+    let mut output_tokens = 0;
 
     while let Some(line) = stdout_reader.next_line().await? {
         tracing::debug!("Agent output: {}", line);
-        output.push_str(&line);
-        output.push('\n');
+
+        // If live logging is enabled and we're using stream-json, parse events
+        if live_logger.is_some() && output_format == "stream-json" {
+            if let Ok(wrapper_json) = serde_json::from_str::<serde_json::Value>(&line) {
+                // With --verbose, events are wrapped in {"type":"stream_event","event":{...}}
+                let event_json = if wrapper_json.get("type").and_then(|v| v.as_str()) == Some("stream_event") {
+                    wrapper_json.get("event").cloned()
+                } else {
+                    Some(wrapper_json.clone())
+                };
+
+                if let Some(event_json) = event_json {
+                    // Log event to live logger
+                    if let Some(ref logger) = live_logger {
+                        // Parse into StreamEvent
+                        if let Ok(event) = serde_json::from_value::<crate::live_logger::StreamEvent>(event_json.clone()) {
+                            let _ = logger.log_event(&event);
+
+                            // Track output tokens
+                            if let Some(usage) = event_json.get("usage") {
+                                if let Some(tokens) = usage.get("output_tokens").and_then(|v| v.as_u64()) {
+                                    output_tokens = tokens as usize;
+                                }
+                            }
+                        }
+                    }
+
+                    // Extract text content for output accumulation
+                    if let Some(delta) = event_json.get("delta") {
+                        if let Some(text) = delta.get("text").and_then(|v| v.as_str()) {
+                            output.push_str(text);
+                        }
+                    }
+                }
+            }
+        } else {
+            // Regular text format processing
+            output.push_str(&line);
+            output.push('\n');
+        }
 
         // Write to debug log
         if let Some(ref logger) = debug_logger {
@@ -194,8 +287,8 @@ pub async fn execute_agent(
         if debug_mode {
             // Show everything in debug mode
             println!("{}", line);
-        } else {
-            // Show only important lines (tool usage, file operations, etc.)
+        } else if output_format == "text" {
+            // Show only important lines for text format (tool usage, file operations, etc.)
             if line.starts_with("Using")
                 || line.starts_with("Tool")
                 || line.starts_with("Reading")
@@ -232,6 +325,16 @@ pub async fn execute_agent(
 
     // Wait for completion
     let status = child.wait().await.context("Failed to wait for agent")?;
+
+    // Log completion to live logger
+    if let Some(ref logger) = live_logger {
+        let stop_reason = if status.success() {
+            "end_turn"
+        } else {
+            "error"
+        };
+        let _ = logger.log_agent_complete(stop_reason, output_tokens);
+    }
 
     // Log completion to debug logger
     if let Some(ref logger) = debug_logger {
@@ -407,6 +510,43 @@ pub fn build_agent_context(sprint: &autoflow_data::Sprint) -> String {
         }
     }
 
+    // Check for failure reports (from sprint.failure_reports or filesystem)
+    let mut failure_reports = String::new();
+
+    // First check sprint.failure_reports field (persisted in SPRINTS.yml)
+    if !sprint.failure_reports.is_empty() {
+        for report_path in &sprint.failure_reports {
+            let path = std::path::Path::new(report_path);
+            if path.exists() {
+                failure_reports.push_str(&format!("\n## Failure Report: {}\n\n", path.file_name().unwrap().to_str().unwrap()));
+                failure_reports.push_str(&format!("**Path**: `{}`\n\n", report_path));
+                failure_reports.push_str("This file contains detailed failure information from the previous test/review run.\n");
+                failure_reports.push_str("**READ THIS FILE FIRST** to understand what failed and what needs to be fixed.\n\n");
+            }
+        }
+    } else {
+        // Fallback: scan .autoflow/.failures/ directory
+        let failure_dir = std::path::PathBuf::from(".autoflow/.failures");
+        if failure_dir.exists() {
+            let possible_reports = vec![
+                format!("sprint-{}-unit-tests.md", sprint.id),
+                format!("sprint-{}-integration-tests.md", sprint.id),
+                format!("sprint-{}-e2e-tests.md", sprint.id),
+                format!("sprint-{}-review.md", sprint.id),
+            ];
+
+            for report_name in possible_reports {
+                let report_path = failure_dir.join(&report_name);
+                if report_path.exists() {
+                    failure_reports.push_str(&format!("\n## Failure Report: {}\n\n", report_name));
+                    failure_reports.push_str(&format!("**Path**: `.autoflow/.failures/{}`\n\n", report_name));
+                    failure_reports.push_str("This file contains detailed failure information from the previous test/review run.\n");
+                    failure_reports.push_str("**READ THIS FILE FIRST** to understand what failed and what needs to be fixed.\n\n");
+                }
+            }
+        }
+    }
+
     format!(
         r#"Sprint #{}: {}
 
@@ -418,7 +558,7 @@ pub fn build_agent_context(sprint: &autoflow_data::Sprint) -> String {
 # Deliverables
 
 {}
-
+{}
 # Tasks
 {}
 {}
@@ -440,6 +580,7 @@ Use the task details, business rules, acceptance criteria, and referenced docume
             .map(|d| format!("- {}", d))
             .collect::<Vec<_>>()
             .join("\n"),
+        failure_reports,
         tasks_detail,
         doc_sections,
     )

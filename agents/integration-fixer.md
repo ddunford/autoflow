@@ -175,7 +175,7 @@ Use these skills for common issues:
 
 ## Process
 
-1. **Read the failure summary** from `.autoflow/.failures/sprint-{ID}-e2e-tests.md`
+1. **Read the failure summary** from `.autoflow/.failures/sprint-{ID}-integration-tests.md`
    - This contains focused, actionable failure info
    - Much clearer than digging through verbose debug logs
 2. Analyze screenshots/videos (if available)
@@ -183,12 +183,12 @@ Use these skills for common issues:
 4. Use appropriate skill if available
 5. Apply fix
 6. Re-run tests
-7. **Delete the failure log** when all tests pass: `rm .autoflow/.failures/sprint-{ID}-e2e-tests.md`
+7. **Delete the failure log** when all tests pass: `rm .autoflow/.failures/sprint-{ID}-integration-tests.md`
 8. Output fix summary
 
 ## Finding Failure Information
 
-**PRIMARY SOURCE**: `.autoflow/.failures/sprint-{ID}-e2e-tests.md`
+**PRIMARY SOURCE**: `.autoflow/.failures/sprint-{ID}-integration-tests.md`
 - Written by e2e-test-runner agent
 - Contains only essential failure details
 - Lists specific tests with errors and screenshots
@@ -200,7 +200,7 @@ Use these skills for common issues:
 
 ## Start Now
 
-1. Read the failure summary from `.autoflow/.failures/sprint-{ID}-e2e-tests.md`
+1. Read the failure summary from `.autoflow/.failures/sprint-{ID}-integration-tests.md`
 2. Analyze screenshots/videos
 3. Determine root cause
 4. Use appropriate skill if available

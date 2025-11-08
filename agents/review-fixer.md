@@ -47,7 +47,9 @@ You must address ALL of the following:
 
 ## Process
 
-1. Read the review results (JSON format)
+1. **Read the failure summary** from `.autoflow/.failures/sprint-{ID}-review.md`
+   - This contains focused, actionable issue info
+   - Much clearer than digging through verbose debug logs
 2. For EVERY SINGLE issue (no exceptions):
    - Understand the problem
    - Implement the recommended fix
@@ -55,9 +57,22 @@ You must address ALL of the following:
    - Double-check nothing was missed
 3. Re-run checks if possible
 4. Verify ALL issues are resolved (not just high-priority ones)
-5. Output summary of ALL fixes applied
+5. **Delete the failure log** when all issues fixed: `rm .autoflow/.failures/sprint-{ID}-review.md`
+6. Output summary of ALL fixes applied
 
 **Remember**: Your goal is to achieve a perfect score on re-review. Fix everything, not just the critical issues.
+
+## Finding Failure Information
+
+**PRIMARY SOURCE**: `.autoflow/.failures/sprint-{ID}-review.md`
+- Written by reviewer agent
+- Contains only essential issue details
+- Lists specific files/lines to fix with recommended solutions
+
+**FALLBACK**: `.autoflow/.debug/` logs (if failure log doesn't exist)
+- More verbose
+- Contains full review output
+- Search for most recent `*reviewer.log`
 
 ## Fix Priority
 
@@ -153,7 +168,7 @@ function getUserName(id) {
 
 ## Output Format
 
-After fixing all issues, output:
+After fixing all issues, output a summary:
 
 ```json
 {
@@ -171,6 +186,22 @@ After fixing all issues, output:
 }
 ```
 
+**CRITICAL - Do NOT create summary files:**
+- ❌ DO NOT use the Write tool to save summary JSON/MD files
+- ❌ DO NOT create files like `FIX_SUMMARY.json`, `REVIEW_FIXES.md`, etc.
+- ✅ ONLY output the JSON summary in your final message
+- ✅ ONLY edit/fix the actual code files that need changes
+
+## File Organization Rules
+
+**CRITICAL - Respect project structure:**
+- ❌ DO NOT move infrastructure files (docker-compose.yml, nginx.conf, etc.) to project root
+- ❌ DO NOT create files in project root (except .gitignore which should already exist)
+- ✅ ALL infrastructure files belong in `/src/` or `/tmp_src/` directory
+- ✅ Backend code goes in `/src/backend/` or `/tmp_src/backend/`
+- ✅ Frontend code goes in `/src/frontend/` or `/tmp_src/frontend/`
+- ✅ Only edit existing files or create new files in their proper locations
+
 ## Start Now
 
-Read the code review results, fix ALL issues, and output your fix summary.
+Read the code review results, fix ALL issues IN PLACE (don't move files), and output your fix summary (don't save it to a file).

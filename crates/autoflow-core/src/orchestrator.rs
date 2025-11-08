@@ -65,10 +65,35 @@ impl Orchestrator {
             // Check if we're in a BLOCKED state
             if sprint.status == SprintStatus::Blocked {
                 tracing::error!("Sprint {} is BLOCKED", sprint.id);
-                return Err(AutoFlowError::SprintBlocked(
-                    sprint.id,
-                    format!("Sprint blocked after {} iterations", iteration),
-                ));
+
+                // Invoke blocker-resolver agent to analyze and diagnose
+                tracing::info!("Invoking blocker-resolver agent to diagnose Sprint {}", sprint.id);
+
+                match self.run_blocker_resolver(sprint).await {
+                    Ok(analysis) => {
+                        tracing::info!("Blocker analysis complete: {}", analysis);
+
+                        // Blocker-resolver may have fixed the issue, retry from test phase
+                        tracing::info!("Blocker-resolver completed, resetting sprint {} to RUN_UNIT_TESTS to verify fix", sprint.id);
+                        sprint.status = SprintStatus::RunUnitTests;
+                        sprint.blocked_count = Some(0); // Reset blocked count
+                        sprint.last_updated = Utc::now();
+
+                        // Save progress and continue loop to retry
+                        if let Some(ref save_fn) = self.save_callback {
+                            save_fn(sprint)?;
+                        }
+                        continue; // Continue to next iteration
+                    }
+                    Err(e) => {
+                        tracing::warn!("Blocker-resolver failed: {}", e);
+                        // Blocker-resolver couldn't help, sprint stays blocked
+                        return Err(AutoFlowError::SprintBlocked(
+                            sprint.id,
+                            format!("Blocker-resolver failed: {}", e),
+                        ));
+                    }
+                }
             }
 
             // Execute the phase based on current status
@@ -120,9 +145,10 @@ impl Orchestrator {
                             // Create git commit after successful phase completion
                             if self.enable_auto_commit && should_commit_after_phase(previous_status) {
                                 if let Some(ref project_path) = self.project_path {
+                                    tracing::debug!("Attempting to commit after phase: {:?}", previous_status);
                                     let commit_msg = get_commit_message_for_phase(previous_status);
                                     if let Err(e) = commit_project_changes(project_path, sprint, commit_msg) {
-                                        tracing::warn!("Failed to create git commit: {}", e);
+                                        tracing::warn!("Failed to create git commit for phase {:?}: {}", previous_status, e);
                                     }
                                 }
                             }
@@ -336,6 +362,30 @@ impl Orchestrator {
         let results = join_all(futures).await;
 
         Ok(results)
+    }
+
+    /// Run blocker-resolver agent to diagnose blocked sprint
+    async fn run_blocker_resolver(&self, sprint: &Sprint) -> Result<String> {
+        use autoflow_agents::{build_agent_context, execute_agent};
+
+        let context = build_agent_context(sprint);
+        let max_turns = 10; // Give resolver plenty of turns to investigate
+
+        tracing::info!("Executing blocker-resolver agent for sprint {}", sprint.id);
+
+        let result = execute_agent("blocker-resolver", &context, max_turns, Some(sprint.id))
+            .await
+            .map_err(|e| AutoFlowError::AgentExecutionFailed("blocker-resolver".to_string(), e.to_string()))?;
+
+        if result.success {
+            tracing::info!("Blocker-resolver analysis complete");
+            Ok(result.output)
+        } else {
+            Err(AutoFlowError::AgentExecutionFailed(
+                "blocker-resolver".to_string(),
+                result.error.unwrap_or_else(|| "Unknown error".to_string()),
+            ))
+        }
     }
 }
 

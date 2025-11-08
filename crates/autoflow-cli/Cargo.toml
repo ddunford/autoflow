@@ -27,3 +27,4 @@ serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 chrono = { workspace = true }
 autoflow-agents = { path = "../autoflow-agents" }
+walkdir = { workspace = true }

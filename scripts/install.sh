@@ -7,7 +7,8 @@ set -e
 VERSION="0.1.3"
 INSTALL_DIR="$HOME/.autoflow"
 BIN_DIR="$INSTALL_DIR/bin"
-AGENTS_DIR="$HOME/.claude/agents"
+AUTOFLOW_AGENTS_DIR="$INSTALL_DIR/agents"
+CLAUDE_AGENTS_DIR="$HOME/.claude/agents"
 SKILLS_DIR="$HOME/.claude/skills"
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -48,7 +49,8 @@ echo ""
 # Create directories
 echo "📁 Creating directories..."
 mkdir -p "$BIN_DIR"
-mkdir -p "$AGENTS_DIR"
+mkdir -p "$AUTOFLOW_AGENTS_DIR"
+mkdir -p "$CLAUDE_AGENTS_DIR"
 mkdir -p "$SKILLS_DIR"
 mkdir -p "$INSTALL_DIR/schemas"
 mkdir -p "$INSTALL_DIR/templates"
@@ -69,9 +71,9 @@ EXISTING_AGENTS=0
 EXISTING_SKILLS=0
 EXISTING_MCP_SERVERS=0
 
-if [ -d "$AGENTS_DIR" ]; then
+if [ -d "$CLAUDE_AGENTS_DIR" ]; then
     EXISTING_CLAUDE=true
-    EXISTING_AGENTS=$(find "$AGENTS_DIR" -name "*.md" -not -name "*.agent.md" 2>/dev/null | wc -l)
+    EXISTING_AGENTS=$(find "$CLAUDE_AGENTS_DIR" -name "*.md" -not -name "*.agent.md" 2>/dev/null | wc -l)
 fi
 
 if [ -d "$SKILLS_DIR" ]; then
@@ -101,18 +103,25 @@ fi
 # Copy agents
 echo "🤖 Installing agents..."
 if [ -d "agents" ]; then
-    # Install AutoFlow agents with .agent.md suffix
+    # Install AutoFlow agents to both locations:
+    # 1. ~/.autoflow/agents/ (primary, found via binary location)
+    # 2. ~/.claude/agents/ (legacy, for backwards compatibility)
     INSTALLED_AGENTS=0
     for agent in agents/*.md; do
         if [ -f "$agent" ]; then
             basename=$(basename "$agent" .md)
-            cp "$agent" "$AGENTS_DIR/${basename}.agent.md"
+            # Install to AutoFlow agents directory (will be found via binary location)
+            cp "$agent" "$AUTOFLOW_AGENTS_DIR/${basename}.md"
+            # Also install to Claude agents directory with .agent.md suffix (backwards compatibility)
+            cp "$agent" "$CLAUDE_AGENTS_DIR/${basename}.agent.md"
             INSTALLED_AGENTS=$((INSTALLED_AGENTS + 1))
         fi
     done
 
     if [ $INSTALLED_AGENTS -gt 0 ]; then
-        echo "  ✓ $INSTALLED_AGENTS AutoFlow agents installed"
+        echo "  ✓ $INSTALLED_AGENTS AutoFlow agents installed to both locations:"
+        echo "    → $AUTOFLOW_AGENTS_DIR/ (primary)"
+        echo "    → $CLAUDE_AGENTS_DIR/ (legacy compatibility)"
         if [ "$EXISTING_CLAUDE" = true ]; then
             TOTAL_AGENTS=$((EXISTING_AGENTS + INSTALLED_AGENTS))
             echo "  ℹ Total agents now: $TOTAL_AGENTS ($EXISTING_AGENTS existing + $INSTALLED_AGENTS AutoFlow)"
@@ -299,7 +308,8 @@ echo ""
 echo "📍 Installation paths:"
 echo "   Binary:    $BIN_DIR/autoflow"
 echo "   Config:    $INSTALL_DIR/config.toml"
-echo "   Agents:    $AGENTS_DIR"
+echo "   Agents:    $AUTOFLOW_AGENTS_DIR (primary)"
+echo "   Agents:    $CLAUDE_AGENTS_DIR (legacy)"
 echo "   Skills:    $SKILLS_DIR"
 echo ""
 echo "🚀 Quick Start:"

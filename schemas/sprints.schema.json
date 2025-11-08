@@ -323,6 +323,13 @@
           "must_complete_first": {
             "type": "boolean",
             "description": "Whether this sprint must complete before others can start (optional, defaults to false)"
+          },
+          "failure_reports": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of failure report file paths (e.g., '.autoflow/.failures/sprint-2-unit-tests.md')"
           }
         }
       }

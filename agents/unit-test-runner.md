@@ -1,6 +1,6 @@
 ---
 model: claude-sonnet-4-5-20250929
-tools: Read, Bash
+tools: Read, Write, Bash
 description: Run unit tests and report results
 ---
 
@@ -174,11 +174,66 @@ go test -cover ./...        # With coverage
 go test -v ./...            # Verbose
 ```
 
+## Failure Logging
+
+**CRITICAL**: When tests fail, create a focused failure summary for the fixer agent:
+
+1. **Create ONE failure log**: `.autoflow/.failures/sprint-{ID}-unit-tests.md`
+2. **Include ALL test failures** (unit tests, integration tests, architecture tests, etc.) in this ONE file
+3. **Include ONLY**:
+   - List of failing tests with file:line
+   - Actual vs expected for each failure
+   - Error messages (not full stack traces)
+   - Specific files/functions that need fixing
+   - Commands to reproduce the failure
+4. **Keep it concise** - fixer needs actionable info, not verbose logs
+
+**Example failure log format:**
+```markdown
+# Unit Test Failures - Sprint 2
+
+## Summary
+- 25 tests failed out of 228 total
+- All failures in RLS (Row-Level Security) tests
+
+## Failing Tests
+
+### tests/Unit/Security/RowLevelSecurityTest.php
+
+1. **Line 195**: `test_rls_filters_users_by_tenant`
+   - Expected: 1 user
+   - Actual: 2 users
+   - Issue: RLS not filtering by tenant_id
+
+2. **Line 283**: `test_rls_prevents_cross_tenant_access`
+   - Expected: Exception thrown
+   - Actual: Cross-tenant data accessible
+   - Issue: RLS policies not enforced
+
+## Root Cause
+RLS policies exist but `app.tenant_id` session variable not being set before queries.
+
+## Fix Required
+File: `src/backend/app/Models/BaseModel.php`
+Action: Set `app.tenant_id` in query builder before executing queries
+```
+
+## Critical Rule: ALL Tests Must Pass
+
+**IMPORTANT**: Report `TEST_RESULT: FAILED` if ANY tests fail, regardless of:
+- Which sprint the failing code is from
+- Whether the current sprint's new code passes its tests
+- Whether failures are in "legacy" or "architecture" tests
+
+**Rationale**: If new code breaks existing tests or introduces architecture violations, those MUST be fixed. This is fundamental TDD/CI practice - the entire test suite must remain green.
+
 ## Start Now
 
 1. Detect project structure (check for /src/backend or /src/frontend)
 2. Change to appropriate directory
 3. Detect the test framework
-4. Run unit tests
+4. Run ALL unit tests (including architecture tests if they exist)
 5. Parse results
-6. Output JSON test report
+6. **IF ANY TESTS FAIL**: Write failure summary to `.autoflow/.failures/sprint-{ID}-unit-tests.md`
+7. Output summary in your response
+8. **END WITH**: `TEST_RESULT: PASSED` (if ALL tests pass) or `TEST_RESULT: FAILED` (if ANY test fails)

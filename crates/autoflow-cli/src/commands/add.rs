@@ -240,5 +240,6 @@ fn create_template_sprint(id: u32, description: &str) -> Sprint {
         integration_points: None,
         blocked_count: None,
         must_complete_first: false,
+        failure_reports: vec![],
     }
 }

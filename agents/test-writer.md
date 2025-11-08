@@ -34,11 +34,18 @@ Write tests that:
     tests/              # Frontend tests go here
       unit/
       components/
+  tests/                # Infrastructure/system tests
+    integration/        # Docker, database, API integration tests
+    e2e/                # End-to-end tests
 ```
 
 **File locations:**
 - Backend tests → `/src/backend/tests/unit/`, `/src/backend/tests/integration/`
 - Frontend tests → `/src/frontend/tests/unit/`, `/src/frontend/tests/components/`
+- Infrastructure tests → `/src/tests/integration/` (Docker, PostgreSQL, Redis, etc.)
+- E2E tests → `/src/tests/e2e/` (Full system tests)
+
+**CRITICAL: NEVER create tests in project root - always use `/src/tests/`**
 
 ## Test Structure
 

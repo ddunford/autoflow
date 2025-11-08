@@ -5,8 +5,15 @@ use autoflow_utils::{check_for_updates, should_check_for_updates, prompt_and_upd
 use colored::*;
 use std::path::{Path, PathBuf};
 
-pub async fn run(parallel: bool, sprint: Option<u32>) -> anyhow::Result<()> {
+pub async fn run(parallel: bool, sprint: Option<u32>, live: bool) -> anyhow::Result<()> {
     println!("{}", "🚀 Starting AutoFlow...".bright_cyan().bold());
+
+    // Live logging is now enabled by default
+    let live_enabled = live;
+    if live_enabled {
+        println!("{}", "📡 Live logging enabled - streaming to .autoflow/.debug/live/".bright_green());
+        std::env::set_var("AUTOFLOW_LIVE_LOGGING", "1");
+    }
 
     // Check for updates (if enabled and interval has passed)
     if should_check_for_updates().unwrap_or(false) {
@@ -474,14 +481,48 @@ Only fix what's broken - preserve all existing content."#,
 
         vec![idx]
     } else {
-        // Run all pending or in-progress sprints
+        // Run all pending or in-progress sprints, respecting dependencies and must_complete_first
+
+        // First, check if any sprint with must_complete_first is BLOCKED
+        let has_blocking_sprint = sprints_data
+            .sprints
+            .iter()
+            .any(|s| s.must_complete_first && s.status == SprintStatus::Blocked);
+
+        if has_blocking_sprint {
+            println!(
+                "\n{}",
+                "Cannot start sprints: A sprint with must_complete_first is BLOCKED."
+                    .red().bold()
+            );
+            println!("{}", "Please fix the blocked sprint before continuing.".yellow());
+            return Ok(());
+        }
+
+        // Check dependencies and must_complete_first
         let runnable: Vec<usize> = sprints_data
             .sprints
             .iter()
             .enumerate()
             .filter(|(_, s)| {
-                s.status == SprintStatus::Pending
-                    || (s.status != SprintStatus::Done && s.status != SprintStatus::Blocked)
+                // Must be runnable status (BLOCKED is runnable - blocker-resolver handles it)
+                let is_runnable_status = s.status != SprintStatus::Done;
+
+                if !is_runnable_status {
+                    return false;
+                }
+
+                // Check if all dependencies are satisfied
+                let dependencies_satisfied = s.dependencies.iter().all(|dep_id| {
+                    sprints_data
+                        .sprints
+                        .iter()
+                        .find(|other| other.id.to_string() == *dep_id)
+                        .map(|dep| dep.status == SprintStatus::Done)
+                        .unwrap_or(true) // If dependency not found, allow (to not break things)
+                });
+
+                dependencies_satisfied
             })
             .map(|(idx, _)| idx)
             .collect();
@@ -489,7 +530,7 @@ Only fix what's broken - preserve all existing content."#,
         if runnable.is_empty() {
             println!(
                 "\n{}",
-                "No runnable sprints found. All sprints are either complete or blocked."
+                "No runnable sprints found. All sprints are either complete, blocked, or waiting for dependencies."
                     .yellow()
             );
             return Ok(());
@@ -587,10 +628,102 @@ Only fix what's broken - preserve all existing content."#,
         sprints_data.save(sprints_path)
             .context("Failed to save sprint progress")?;
     } else {
-        // Run sequentially
-        println!("\n{}", "Mode: Sequential execution".bright_green());
+        // Run sequentially - keep running until no more runnable sprints
+        println!("\n{}", "Mode: Sequential execution (continuous)".bright_green());
 
-        for &idx in &sprint_indices {
+        // If specific sprint(s) requested, run only those
+        let indices_to_run: Vec<usize> = if !sprint_indices.is_empty() {
+            sprint_indices.clone()
+        } else {
+            // Continuous mode - re-evaluate after each sprint
+            vec![]
+        };
+
+        if !indices_to_run.is_empty() {
+            // Run specific sprint(s) only
+            for idx in indices_to_run {
+                let sprint = &mut sprints_data.sprints[idx];
+
+                println!(
+                    "\n{} {} - {}",
+                    "Running Sprint".bright_cyan(),
+                    sprint.id.to_string().bright_blue(),
+                    sprint.goal.bright_white()
+                );
+
+                let sprint_id = sprint.id;
+                match orchestrator.run_sprint(sprint).await {
+                    Ok(_) => {
+                        println!(
+                            "{} Sprint {} completed successfully",
+                            "✅".green(),
+                            sprint_id
+                        );
+                    }
+                    Err(e) => {
+                        println!(
+                            "{} Sprint {} failed: {}",
+                            "❌".red(),
+                            sprint_id,
+                            e
+                        );
+
+                        // If sprint is blocked, note it but continue
+                        if sprint.status == SprintStatus::Blocked {
+                            println!(
+                                "{} Sprint {} is blocked",
+                                "⚠️".yellow(),
+                                sprint_id
+                            );
+                        }
+                    }
+                }
+
+                // Save progress after each sprint
+                sprints_data.save(sprints_path)
+                    .context("Failed to save sprint progress")?;
+            }
+        } else {
+            // Continuous mode loop
+            loop {
+                // Re-evaluate runnable sprints after each completion
+                let runnable: Vec<usize> = sprints_data
+                .sprints
+                .iter()
+                .enumerate()
+                .filter(|(_, s)| {
+                    // Must be runnable status (BLOCKED is runnable now - blocker-resolver will handle it)
+                    let is_runnable_status = s.status != SprintStatus::Done;
+
+                    if !is_runnable_status {
+                        return false;
+                    }
+
+                    // must_complete_first only blocks if BLOCKED, not if just incomplete
+                    // (Dependencies handle execution order, must_complete_first only stops on failure)
+
+                    // Check if all dependencies are satisfied
+                    let dependencies_satisfied = s.dependencies.iter().all(|dep_id| {
+                        sprints_data
+                            .sprints
+                            .iter()
+                            .find(|other| other.id.to_string() == *dep_id)
+                            .map(|dep| dep.status == SprintStatus::Done)
+                            .unwrap_or(true)
+                    });
+
+                    dependencies_satisfied
+                })
+                .map(|(idx, _)| idx)
+                .collect();
+
+            if runnable.is_empty() {
+                println!("\n{}", "No more runnable sprints.".yellow());
+                break;
+            }
+
+            // Run the sprint with the lowest ID (maintain order)
+            let idx = *runnable.iter().min_by_key(|&&i| sprints_data.sprints[i].id).unwrap();
             let sprint = &mut sprints_data.sprints[idx];
 
             println!(
@@ -617,20 +750,22 @@ Only fix what's broken - preserve all existing content."#,
                         e
                     );
 
-                    // Continue with next sprint unless it's a critical error
+                    // If sprint is blocked, stop execution
                     if sprint.status == SprintStatus::Blocked {
                         println!(
-                            "{} Sprint {} is blocked, skipping remaining sprints",
+                            "{} Sprint {} is blocked, stopping execution",
                             "⚠️".yellow(),
                             sprint_id
                         );
+                        break;
                     }
                 }
             }
 
-            // Save progress after each sprint iteration
+            // Save progress after each sprint
             sprints_data.save(sprints_path)
                 .context("Failed to save sprint progress")?;
+            }
         }
     }
 
