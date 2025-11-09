@@ -278,10 +278,8 @@ pub async fn execute_agent(
             output.push('\n');
         }
 
-        // Write to debug log
-        if let Some(ref logger) = debug_logger {
-            let _ = logger.log_agent_output(agent_name, &format!("{}\n", line));
-        }
+        // Note: Streaming output goes to .live/ logs only
+        // Debug logs (.debug/) only contain start/end summaries
 
         // Filter output for console display (unless debug mode)
         if debug_mode {

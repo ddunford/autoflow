@@ -86,29 +86,16 @@ impl DebugLogger {
             .create(true)
             .append(true)
             .open(&log_file)?;
-        
+
         writeln!(file, "[{}] {}", Utc::now().format("%H:%M:%S"), step)?;
         if !details.is_empty() {
             writeln!(file, "{}", details)?;
         }
         writeln!(file)?;
-        
+
         Ok(())
     }
-    
-    /// Log agent output (streaming)
-    pub fn log_agent_output(&self, agent_name: &str, output: &str) -> Result<()> {
-        let log_file = self.debug_dir.join(format!("{}_{}.log", self.session_id, agent_name));
-        let mut file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&log_file)?;
-        
-        write!(file, "{}", output)?;
-        
-        Ok(())
-    }
-    
+
     /// Log agent execution end
     pub fn log_agent_end(&self, agent_name: &str, success: bool, error: Option<&str>) -> Result<()> {
         let log_file = self.debug_dir.join(format!("{}_{}.log", self.session_id, agent_name));
