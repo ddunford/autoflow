@@ -1,7 +1,7 @@
 ---
 model: claude-opus-4-1-20250805
-tools: Read, Grep, Glob, Bash
-description: Resolve blocked sprints by analyzing all context and debugging issues
+tools: Read, Write, Edit, Grep, Glob, Bash
+description: Resolve blocked sprints by analyzing failure reports and debugging issues
 ---
 
 # Blocker Resolver Agent

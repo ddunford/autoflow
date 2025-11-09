@@ -375,9 +375,10 @@ impl Orchestrator {
 
     /// Run blocker-resolver agent to diagnose blocked sprint
     async fn run_blocker_resolver(&self, sprint: &Sprint) -> Result<String> {
-        use autoflow_agents::{build_agent_context, execute_agent};
+        use autoflow_agents::{build_fixer_context, execute_agent};
 
-        let context = build_agent_context(sprint);
+        // Use lightweight context - blocker-resolver only needs failure reports, not full task details
+        let context = build_fixer_context(sprint);
         let max_turns = 10; // Give resolver plenty of turns to investigate
 
         tracing::info!("Executing blocker-resolver agent for sprint {}", sprint.id);
