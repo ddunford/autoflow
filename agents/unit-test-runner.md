@@ -234,6 +234,12 @@ Action: Set `app.tenant_id` in query builder before executing queries
 3. Detect the test framework
 4. Run ALL unit tests (including architecture tests if they exist)
 5. Parse results
-6. **IF ANY TESTS FAIL**: Write failure summary to `.autoflow/.failures/sprint-{ID}-unit-tests.md`
+6. **CRITICAL - IF ANY TESTS FAIL**:
+   - **YOU MUST** use the Write tool to create `.autoflow/.failures/sprint-{ID}-unit-tests.md`
+   - Include ONLY the focused failure information described in "Failure Logging" section above
+   - This file is REQUIRED for the fixer agent to work properly
+   - DO NOT skip this step - the system depends on this file existing!
 7. Output summary in your response
 8. **END WITH**: `TEST_RESULT: PASSED` (if ALL tests pass) or `TEST_RESULT: FAILED` (if ANY test fails)
+
+**IMPORTANT**: Step 6 is MANDATORY when tests fail. The fixer agent cannot function without the failure file!

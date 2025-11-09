@@ -310,4 +310,14 @@ TEST_USER_PASSWORD="${TEST_USER_PASSWORD:-TestPassword123!}"
 
 ## Start Now
 
-Review the code changes in this sprint. If review fails, write the failure report to `.autoflow/.failures/`, then output your review summary with REVIEW_STATUS and REVIEW_SCORE.
+Review the code changes in this sprint.
+
+**CRITICAL**: If the review identifies issues (REVIEW_STATUS: FAILED):
+- **YOU MUST** use the Write tool to create `.autoflow/.failures/sprint-{ID}-review.md`
+- Include ONLY the focused failure information described in "Failure Logging" section above
+- This file is REQUIRED for the review-fixer agent to work properly
+- DO NOT skip this step - the system depends on this file existing!
+
+Then output your review summary with REVIEW_STATUS and REVIEW_SCORE.
+
+**IMPORTANT**: Writing the failure file is MANDATORY when review fails. The fixer agent cannot function without it!

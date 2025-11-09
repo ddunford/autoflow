@@ -218,12 +218,70 @@ Action: Verify Routes are properly configured with BrowserRouter
 
 ## Start Now
 
-1. Check for `docker-compose.yml` and start Docker stack if present
-2. Navigate to `/src/frontend` directory
-3. Detect the E2E framework
-4. Ensure app is running (via Docker or dev server)
-5. Run E2E tests
-6. Parse and report results
-7. **IF ANY TESTS FAIL**: Write failure summary to `.autoflow/.failures/sprint-{ID}-e2e-tests.md`
+### 1. Check Environment and Delegate Setup if Needed
+
+**Step 1a: Detect if Docker is used**
+
+First, check if the project uses Docker Compose:
+
+```bash
+# Check for docker-compose.yml
+if [ -f "src/docker-compose.yml" ]; then
+  echo "DOCKER_DETECTED=true"
+elif [ -f "docker-compose.yml" ]; then
+  echo "DOCKER_DETECTED=true"
+else
+  echo "DOCKER_DETECTED=false"
+fi
+```
+
+**Step 1b: If Docker detected, check health**
+
+```bash
+cd src 2>/dev/null || cd .
+docker compose ps --format json | jq -r '.[] | "\(.Service): \(.Health // .State)"'
+
+# Count services that need health (have healthcheck defined)
+unhealthy_count=$(docker compose ps --format json | jq -r '.[] | select(.Health != "" and .Health != "healthy") | .Service' | wc -l)
+
+echo "UNHEALTHY_COUNT=$unhealthy_count"
+```
+
+**Step 1c: If unhealthy services detected, DELEGATE to environment-setup agent**
+
+If `unhealthy_count > 0`, you MUST use the Task tool to invoke the environment-setup agent:
+
+```
+Task tool parameters:
+- subagent_type: "general-purpose"
+- model: "haiku" (faster for this task)
+- description: "Fix Docker environment"
+- prompt: "Act as the environment-setup agent. Your task: 1) Check Docker Compose services in src/ directory, 2) Restart any unhealthy containers, 3) Wait up to 2 minutes for ALL services to become healthy, 4) If any remain unhealthy after 2 minutes, check logs and attempt fixes (restart, check config), 5) Report final status. Output 'ENVIRONMENT_SETUP: SUCCESS' if all healthy, or 'ENVIRONMENT_SETUP: FAILED' with details if not."
+```
+
+Wait for the environment-setup agent to complete, then re-check health. If still unhealthy, FAIL and report to user.
+
+**Step 1d: If no Docker OR all services healthy, proceed**
+
+Only proceed to Step 2 if either:
+- No Docker Compose detected, OR
+- All Docker services are healthy
+
+### 2. Run E2E Tests
+
+Only after environment is confirmed healthy:
+
+1. Navigate to `/src/frontend` directory
+2. Detect the E2E framework (Playwright, Cypress)
+3. Ensure frontend app is accessible
+4. Run E2E tests
+5. Parse and report results
+7. **CRITICAL - IF ANY TESTS FAIL**:
+   - **YOU MUST** use the Write tool to create `.autoflow/.failures/sprint-{ID}-e2e-tests.md`
+   - Include ONLY the focused failure information described in "Failure Logging" section above
+   - This file is REQUIRED for the fixer agent to work properly
+   - DO NOT skip this step - the system depends on this file existing!
 8. Output summary in your response
 9. **END WITH**: `TEST_RESULT: PASSED` (if ALL tests pass) or `TEST_RESULT: FAILED` (if ANY test fails)
+
+**IMPORTANT**: Step 7 is MANDATORY when tests fail. The fixer agent cannot function without the failure file!

@@ -632,12 +632,22 @@ Only fix what's broken - preserve all existing content."#,
         println!("\n{}", "Mode: Sequential execution (continuous)".bright_green());
 
         // If specific sprint(s) requested, run only those
-        let indices_to_run: Vec<usize> = if !sprint_indices.is_empty() {
+        let mut indices_to_run: Vec<usize> = if !sprint_indices.is_empty() {
             sprint_indices.clone()
         } else {
             // Continuous mode - re-evaluate after each sprint
             vec![]
         };
+
+        // Sort indices by priority (in-progress, must_complete_first, then lowest ID)
+        if !indices_to_run.is_empty() {
+            indices_to_run.sort_by_key(|&idx| {
+                let sprint = &sprints_data.sprints[idx];
+                let is_in_progress = sprint.status != SprintStatus::Pending && sprint.status != SprintStatus::Done;
+                let is_critical = sprint.must_complete_first;
+                (!is_in_progress, !is_critical, sprint.id)
+            });
+        }
 
         if !indices_to_run.is_empty() {
             // Run specific sprint(s) only
@@ -722,8 +732,20 @@ Only fix what's broken - preserve all existing content."#,
                 break;
             }
 
-            // Run the sprint with the lowest ID (maintain order)
-            let idx = *runnable.iter().min_by_key(|&&i| sprints_data.sprints[i].id).unwrap();
+            // Select sprint with priority:
+            // 1. In-progress sprints (finish what we started)
+            // 2. must_complete_first sprints (critical foundation work)
+            // 3. Lowest ID (maintain sequential order)
+            let idx = *runnable.iter().min_by_key(|&&i| {
+                let sprint = &sprints_data.sprints[i];
+                let is_in_progress = sprint.status != SprintStatus::Pending && sprint.status != SprintStatus::Done;
+                let is_critical = sprint.must_complete_first;
+
+                // Priority tuple: (not in_progress, not critical, id)
+                // Lower values are selected first, so we negate booleans to prioritize true values
+                // false=0 true=1, so !true=0 (selected first), !false=1 (selected last)
+                (!is_in_progress, !is_critical, sprint.id)
+            }).unwrap();
             let sprint = &mut sprints_data.sprints[idx];
 
             println!(
