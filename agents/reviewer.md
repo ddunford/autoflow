@@ -1,6 +1,6 @@
 ---
 model: claude-opus-4-1-20250805
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, Write
 description: Review code quality, security (OWASP), and best practices
 ---
 
