@@ -265,3 +265,32 @@ Reason: Requires scaffolding entire framework, not just fixing a file.
 - Ignore the failure summary files
 
 **Start by**: `ls .autoflow/.failures/` to see what failed, then read those summaries!
+
+## Special Case: No Failure Reports Found
+
+**If there are NO failure reports for this sprint**, output this immediately:
+
+```json
+{
+  "blocked_sprint": <SPRINT_ID>,
+  "root_cause": "Sprint marked as BLOCKED but no failure reports exist",
+  "evidence": [
+    "No failure reports found in .autoflow/.failures/",
+    "Sprint status is BLOCKED but reason is unclear",
+    "This indicates an orchestrator bug or incomplete failure logging"
+  ],
+  "recommended_action": "MANUAL_FIX",
+  "fix_details": {
+    "reason": "Cannot diagnose issue without failure reports",
+    "actions_needed": [
+      "Check orchestrator logs to see why sprint was marked BLOCKED",
+      "Manually inspect sprint status and determine if it should be BLOCKED",
+      "Consider resetting sprint status to previous state if no actual failure occurred"
+    ]
+  },
+  "can_auto_fix": false,
+  "requires_human": true
+}
+```
+
+Then **STOP** - do not try to investigate further without failure information.

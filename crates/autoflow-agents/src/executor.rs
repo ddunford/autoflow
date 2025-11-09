@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::process::Stdio;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
+use tokio::time::{sleep, Duration};
 
 /// Agent execution result
 #[derive(Debug)]
@@ -103,7 +104,65 @@ async fn load_agent_def(agent_name: &str) -> Result<AgentDef> {
 }
 
 /// Execute a Claude Code agent
+/// Execute agent with automatic retry on API errors
+///
+/// Retries with exponential backoff on exit code 1 (API errors)
+/// Max 3 attempts with delays: 5s, 15s, 30s
+pub async fn execute_agent_with_retry(
+    agent_name: &str,
+    context: &str,
+    max_turns: u32,
+    sprint_id: Option<u32>,
+) -> Result<AgentResult> {
+    const MAX_RETRIES: u32 = 3;
+    const RETRY_DELAYS: [u64; 3] = [5, 15, 30]; // seconds
+
+    for attempt in 1..=MAX_RETRIES {
+        match execute_agent_internal(agent_name, context, max_turns, sprint_id).await {
+            Ok(result) => {
+                // Success - return immediately
+                return Ok(result);
+            }
+            Err(e) => {
+                let error_msg = e.to_string();
+
+                // Check if this is an API error (exit status 1 with no stderr)
+                let is_api_error = error_msg.contains("exit status: 1")
+                    && error_msg.contains("Stderr: \n");
+
+                if !is_api_error || attempt == MAX_RETRIES {
+                    // Not an API error, or final attempt - return error
+                    return Err(e);
+                }
+
+                // API error detected - retry with backoff
+                let delay = RETRY_DELAYS[(attempt - 1) as usize];
+                tracing::warn!(
+                    "Agent '{}' failed with API error (attempt {}/{}). Retrying in {}s...",
+                    agent_name, attempt, MAX_RETRIES, delay
+                );
+
+                sleep(Duration::from_secs(delay)).await;
+            }
+        }
+    }
+
+    // Should never reach here, but satisfy compiler
+    bail!("Agent execution failed after {} retries", MAX_RETRIES)
+}
+
+/// Backwards-compatible alias for execute_agent_with_retry
 pub async fn execute_agent(
+    agent_name: &str,
+    context: &str,
+    max_turns: u32,
+    sprint_id: Option<u32>,
+) -> Result<AgentResult> {
+    execute_agent_with_retry(agent_name, context, max_turns, sprint_id).await
+}
+
+/// Internal execute agent function (called by retry wrapper)
+async fn execute_agent_internal(
     agent_name: &str,
     context: &str,
     _max_turns: u32,
