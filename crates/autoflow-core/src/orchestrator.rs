@@ -249,7 +249,7 @@ impl Orchestrator {
     /// Execute a phase based on sprint status
     /// Returns Ok(true) if should advance, Ok(false) if should retry, Err if failed
     async fn execute_phase(&self, sprint: &Sprint) -> Result<bool> {
-        use autoflow_agents::{build_agent_context, build_test_runner_context, execute_agent};
+        use autoflow_agents::{build_agent_context, build_fixer_context, build_test_runner_context, execute_agent};
 
         // Get workflow definition for this sprint
         let workflow = get_workflow_definition(sprint.workflow_type);
@@ -285,14 +285,23 @@ impl Orchestrator {
 
         let agent_name = phase.agent;
 
-        // Use lightweight context for test runner agents to reduce token usage
+        // Use lightweight context for different agent types to reduce token usage
         let context = match sprint.status {
+            // Test runner agents - only need test specifications
             SprintStatus::RunUnitTests
             | SprintStatus::RunE2eTests
             | SprintStatus::WriteE2eTests => {
                 tracing::debug!("Using lightweight test runner context for {:?}", sprint.status);
                 build_test_runner_context(sprint)
             }
+            // Fixer agents - only need failure reports
+            SprintStatus::ReviewFix
+            | SprintStatus::UnitFix
+            | SprintStatus::E2eFix => {
+                tracing::debug!("Using lightweight fixer context for {:?}", sprint.status);
+                build_fixer_context(sprint)
+            }
+            // All other agents - need full context
             _ => {
                 build_agent_context(sprint)
             }

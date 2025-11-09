@@ -632,3 +632,69 @@ The orchestrator uses this marker to determine workflow progression.
         test_specs_str
     )
 }
+
+/// Build lightweight context for fixer agents (review-fixer, unit-fixer, e2e-fixer, integration-fixer)
+/// Fixer agents only need the sprint goal and failure reports, not full task details
+pub fn build_fixer_context(sprint: &autoflow_data::Sprint) -> String {
+    // Check for failure reports
+    let mut failure_reports = String::new();
+
+    // Check sprint.failure_reports field (persisted in SPRINTS.yml)
+    if !sprint.failure_reports.is_empty() {
+        for report_path in &sprint.failure_reports {
+            let path = std::path::Path::new(report_path);
+            if path.exists() {
+                failure_reports.push_str(&format!("\n## Failure Report: {}\n\n", path.file_name().unwrap().to_str().unwrap()));
+                failure_reports.push_str(&format!("**Path**: `{}`\n\n", report_path));
+                failure_reports.push_str("This file contains detailed failure information from the previous test/review run.\n");
+                failure_reports.push_str("**READ THIS FILE FIRST** to understand what failed and what needs to be fixed.\n\n");
+            }
+        }
+    } else {
+        // Fallback: check .autoflow/.failures/ directory for sprint-specific reports
+        let patterns = [
+            format!("sprint-{}-review.md", sprint.id),
+            format!("sprint-{}-unit-tests.md", sprint.id),
+            format!("sprint-{}-integration-tests.md", sprint.id),
+            format!("sprint-{}-e2e-tests.md", sprint.id),
+        ];
+
+        for pattern in &patterns {
+            let report_path = std::path::Path::new(".autoflow/.failures").join(pattern);
+            if report_path.exists() {
+                let report_name = pattern;
+                failure_reports.push_str(&format!("\n## Failure Report: {}\n\n", report_name));
+                failure_reports.push_str(&format!("**Path**: `.autoflow/.failures/{}`\n\n", report_name));
+                failure_reports.push_str("This file contains detailed failure information.\n");
+                failure_reports.push_str("**READ THIS FILE FIRST** to understand what needs to be fixed.\n\n");
+            }
+        }
+    }
+
+    if failure_reports.is_empty() {
+        failure_reports = "\n**No failure reports found.**\n\nCheck `.autoflow/.failures/` directory for any reports.\n".to_string();
+    }
+
+    format!(
+        r#"Sprint #{}: {}
+
+# Fixer Context
+
+Fix the issues identified in the failure reports below.
+
+{}
+
+## Instructions
+
+1. **READ** the failure report file(s) above to understand what failed
+2. **FIX** the identified issues in the codebase
+3. **VERIFY** your fixes are correct
+4. DO NOT include full task details or sprint JSON in your context
+
+The failure reports contain all the information you need to fix the issues.
+"#,
+        sprint.id,
+        sprint.goal,
+        failure_reports
+    )
+}
