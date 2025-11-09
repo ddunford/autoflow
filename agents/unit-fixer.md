@@ -1,5 +1,5 @@
 ---
-model: claude-opus-4-1-20250805
+model: claude-sonnet-4-5-20250929
 tools: Read, Write, Edit, Bash, Grep, Glob
 description: Fix failing unit tests
 ---

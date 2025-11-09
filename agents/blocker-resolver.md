@@ -1,5 +1,5 @@
 ---
-model: claude-opus-4-1-20250805
+model: claude-sonnet-4-5-20250929
 tools: Read, Write, Edit, Grep, Glob, Bash
 description: Resolve blocked sprints by analyzing failure reports and debugging issues
 ---
