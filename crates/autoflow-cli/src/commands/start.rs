@@ -484,20 +484,24 @@ Only fix what's broken - preserve all existing content."#,
         // Run all pending or in-progress sprints, respecting dependencies and must_complete_first
 
         // First, check if any sprint with must_complete_first is BLOCKED
-        let has_blocking_sprint = sprints_data
+        // If so, prioritize running it (orchestrator will invoke blocker-resolver)
+        let blocked_critical_sprint = sprints_data
             .sprints
             .iter()
-            .any(|s| s.must_complete_first && s.status == SprintStatus::Blocked);
+            .enumerate()
+            .find(|(_, s)| s.must_complete_first && s.status == SprintStatus::Blocked);
 
-        if has_blocking_sprint {
+        if let Some((idx, sprint)) = blocked_critical_sprint {
             println!(
                 "\n{}",
-                "Cannot start sprints: A sprint with must_complete_first is BLOCKED."
-                    .red().bold()
+                format!("Critical sprint {} is BLOCKED - attempting to resolve...", sprint.id)
+                    .yellow().bold()
             );
-            println!("{}", "Please fix the blocked sprint before continuing.".yellow());
-            return Ok(());
-        }
+            println!("{}", "Invoking blocker-resolver to diagnose and fix the issue.".cyan());
+
+            // Run only the blocked sprint - orchestrator will handle blocker-resolver
+            vec![idx]
+        } else {
 
         // Check dependencies and must_complete_first
         let runnable: Vec<usize> = sprints_data
@@ -541,6 +545,7 @@ Only fix what's broken - preserve all existing content."#,
             runnable.len().to_string().bright_green()
         );
         runnable
+        }
     };
 
     // Create orchestrator
