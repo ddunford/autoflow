@@ -104,10 +104,11 @@ async fn load_agent_def(agent_name: &str) -> Result<AgentDef> {
 }
 
 /// Execute a Claude Code agent
-/// Execute agent with automatic retry on API errors
+/// Execute agent with automatic retry on API errors and model fallback
 ///
 /// Retries with exponential backoff on exit code 1 (API errors)
 /// Max 3 attempts with delays: 5s, 15s, 30s
+/// Automatically falls back from Opus to Sonnet on rate limit errors
 pub async fn execute_agent_with_retry(
     agent_name: &str,
     context: &str,
@@ -117,8 +118,10 @@ pub async fn execute_agent_with_retry(
     const MAX_RETRIES: u32 = 3;
     const RETRY_DELAYS: [u64; 3] = [5, 15, 30]; // seconds
 
+    let mut current_model: Option<String> = None;
+
     for attempt in 1..=MAX_RETRIES {
-        match execute_agent_internal(agent_name, context, max_turns, sprint_id).await {
+        match execute_agent_internal(agent_name, context, max_turns, sprint_id, current_model.as_deref()).await {
             Ok(result) => {
                 // Success - return immediately
                 return Ok(result);
@@ -130,12 +133,29 @@ pub async fn execute_agent_with_retry(
                 let is_api_error = error_msg.contains("exit status: 1")
                     && error_msg.contains("Stderr: \n");
 
-                if !is_api_error || attempt == MAX_RETRIES {
-                    // Not an API error, or final attempt - return error
+                if !is_api_error {
+                    // Not an API error - return immediately
                     return Err(e);
                 }
 
-                // API error detected - retry with backoff
+                // API error detected
+                if attempt == MAX_RETRIES {
+                    // Final attempt failed - return error
+                    return Err(e);
+                }
+
+                // Try fallback from Opus to Sonnet on first retry
+                if attempt == 1 && current_model.is_none() {
+                    tracing::warn!(
+                        "Agent '{}' failed with API error. Attempting fallback from Opus to Sonnet...",
+                        agent_name
+                    );
+                    current_model = Some("claude-sonnet-4-5-20250929".to_string());
+                    // No delay on first retry with model switch
+                    continue;
+                }
+
+                // Retry with backoff
                 let delay = RETRY_DELAYS[(attempt - 1) as usize];
                 tracing::warn!(
                     "Agent '{}' failed with API error (attempt {}/{}). Retrying in {}s...",
@@ -167,6 +187,7 @@ async fn execute_agent_internal(
     context: &str,
     _max_turns: u32,
     sprint_id: Option<u32>,
+    model_override: Option<&str>,
 ) -> Result<AgentResult> {
     tracing::info!("Executing agent: {}", agent_name);
 
@@ -194,7 +215,13 @@ async fn execute_agent_internal(
     };
 
     // Load agent definition
-    let agent_def = load_agent_def(agent_name).await?;
+    let mut agent_def = load_agent_def(agent_name).await?;
+
+    // Override model if fallback is active
+    if let Some(override_model) = model_override {
+        tracing::info!("Using model override: {} (original: {})", override_model, agent_def.model);
+        agent_def.model = override_model.to_string();
+    }
 
     tracing::debug!("Agent model: {}", agent_def.model);
     tracing::debug!("Agent tools: {:?}", agent_def.tools);
