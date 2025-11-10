@@ -53,6 +53,19 @@ pub fn commit_project_changes(project_path: &Path, sprint: &Sprint, message: &st
         return Ok(()); // Don't fail the sprint, just skip committing
     }
 
+    // Check if there are staged changes to commit
+    let diff_result = Command::new("git")
+        .current_dir(project_path)
+        .args(["diff", "--cached", "--quiet"])
+        .status()
+        .map_err(|e| AutoFlowError::ValidationError(format!("Failed to check staged changes: {}", e)))?;
+
+    // git diff --cached --quiet exits with 0 if no changes, 1 if there are changes
+    if diff_result.success() {
+        tracing::debug!("No staged changes to commit after excluding .autoflow/ in {:?}", project_path);
+        return Ok(());
+    }
+
     // Create commit
     let commit_result = Command::new("git")
         .current_dir(project_path)
@@ -90,10 +103,10 @@ pub fn should_commit_after_phase(status: SprintStatus) -> bool {
         SprintStatus::Done => true,
         SprintStatus::Complete => true,
 
-        // Don't commit during fix phases (will commit after phase completes)
-        SprintStatus::ReviewFix => false,
-        SprintStatus::UnitFix => false,
-        SprintStatus::E2eFix => false,
+        // Commit after fix phases to track changes made by each fixer
+        SprintStatus::ReviewFix => true,
+        SprintStatus::UnitFix => true,
+        SprintStatus::E2eFix => true,
 
         // Don't commit on pending/blocked
         SprintStatus::Pending => false,
@@ -110,6 +123,9 @@ pub fn get_commit_message_for_phase(status: SprintStatus) -> &'static str {
         SprintStatus::CodeReview => "Code review passed",
         SprintStatus::RunUnitTests => "Unit tests passed",
         SprintStatus::RunE2eTests => "E2E tests passed",
+        SprintStatus::ReviewFix => "Fix code review issues",
+        SprintStatus::UnitFix => "Fix unit test failures",
+        SprintStatus::E2eFix => "Fix E2E test failures",
         SprintStatus::Done => "Sprint completed",
         SprintStatus::Complete => "Sprint completed",
         _ => "Update code",

@@ -237,7 +237,7 @@ try {
 6. Determine pass/fail:
    - **ANY issues found** → FAILED, create report (step 7)
    - **ZERO issues found** → PASSED, skip to step 8
-7. **Write failure report** to `.autoflow/.failures/sprint-{ID}-review.md`
+7. **Write failure report** to `/opt/workspaces/login/.autoflow/.failures/sprint-{ID}-review.md`
 8. Output review summary with REVIEW_STATUS and REVIEW_SCORE
 
 **CRITICAL**: If you found even ONE issue that needs fixing, the review FAILED. The score is just informational - any issue = failure.
@@ -250,7 +250,7 @@ try {
 
 **What to include:**
 
-1. **Create ONE review report**: `.autoflow/.failures/sprint-{ID}-review.md`
+1. **Create ONE review report**: `/opt/workspaces/login/.autoflow/.failures/sprint-{ID}-review.md` (use absolute path from project root)
 2. **Include ALL issues found**:
    - List of issues with file:line
    - Severity (CRITICAL, HIGH, MEDIUM, LOW)
@@ -313,7 +313,7 @@ TEST_USER_PASSWORD="${TEST_USER_PASSWORD:-TestPassword123!}"
 Review the code changes in this sprint.
 
 **CRITICAL**: If the review identifies issues (REVIEW_STATUS: FAILED):
-- **YOU MUST** use the Write tool to create `.autoflow/.failures/sprint-{ID}-review.md`
+- **YOU MUST** use the Write tool to create `/opt/workspaces/login/.autoflow/.failures/sprint-{ID}-review.md`
 - Include ONLY the focused failure information described in "Failure Logging" section above
 - This file is REQUIRED for the review-fixer agent to work properly
 - DO NOT skip this step - the system depends on this file existing!

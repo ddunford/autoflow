@@ -171,7 +171,7 @@ If tests fail:
 
 **CRITICAL**: When tests fail, create a focused failure summary for the fixer agent:
 
-1. **Create ONE failure log**: `.autoflow/.failures/sprint-{ID}-integration-tests.md`
+1. **Create ONE failure log**: `/opt/workspaces/login/.autoflow/.failures/sprint-{ID}-integration-tests.md` (use absolute path from project root)
 2. **Include ALL test failures** in this ONE file
 3. **Include ONLY**:
    - List of failing tests with file:line
@@ -276,7 +276,7 @@ Only after environment is confirmed healthy:
 3. Run integration tests
 4. Parse and report results
 7. **CRITICAL - IF ANY TESTS FAIL**:
-   - **YOU MUST** use the Write tool to create `.autoflow/.failures/sprint-{ID}-integration-tests.md`
+   - **YOU MUST** use the Write tool to create `/opt/workspaces/login/.autoflow/.failures/sprint-{ID}-integration-tests.md`
    - Include ONLY the focused failure information described in "Failure Logging" section above
    - This file is REQUIRED for the fixer agent to work properly
    - DO NOT skip this step - the system depends on this file existing!

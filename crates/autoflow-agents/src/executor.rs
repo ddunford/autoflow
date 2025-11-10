@@ -295,6 +295,27 @@ async fn execute_agent_internal(
         cmd.arg("--include-partial-messages"); // Include partial message chunks for live streaming
     }
 
+    // Set Docker user to current user to avoid root-owned files
+    // This prevents permission issues when Claude Code creates files
+    #[cfg(target_os = "linux")]
+    {
+        use std::process::Command as StdCommand;
+        // Get current UID:GID
+        if let Ok(output) = StdCommand::new("id").arg("-u").output() {
+            if let Ok(uid) = String::from_utf8(output.stdout) {
+                let uid = uid.trim();
+                if let Ok(output) = StdCommand::new("id").arg("-g").output() {
+                    if let Ok(gid) = String::from_utf8(output.stdout) {
+                        let gid = gid.trim();
+                        let user_spec = format!("{}:{}", uid, gid);
+                        tracing::debug!("Setting Docker user to {}", user_spec);
+                        cmd.env("DOCKER_USER", &user_spec);
+                    }
+                }
+            }
+        }
+    }
+
     let mut child = cmd
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())

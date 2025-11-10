@@ -264,6 +264,11 @@ pub struct Sprint {
 
     #[serde(default)]
     pub failure_reports: Vec<String>,
+
+    /// Track if this sprint has been through blocker-resolver
+    /// If true, failures will go back to BLOCKED instead of unit-fixer
+    #[serde(default)]
+    pub uses_blocker_resolver: bool,
 }
 
 impl Sprint {

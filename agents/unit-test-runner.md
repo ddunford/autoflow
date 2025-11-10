@@ -178,7 +178,7 @@ go test -v ./...            # Verbose
 
 **CRITICAL**: When tests fail, create a focused failure summary for the fixer agent:
 
-1. **Create ONE failure log**: `.autoflow/.failures/sprint-{ID}-unit-tests.md`
+1. **Create ONE failure log**: `/opt/workspaces/login/.autoflow/.failures/sprint-{ID}-unit-tests.md` (use absolute path from project root)
 2. **Include ALL test failures** (unit tests, integration tests, architecture tests, etc.) in this ONE file
 3. **Include ONLY**:
    - List of failing tests with file:line
@@ -187,6 +187,7 @@ go test -v ./...            # Verbose
    - Specific files/functions that need fixing
    - Commands to reproduce the failure
 4. **Keep it concise** - fixer needs actionable info, not verbose logs
+5. **DO NOT delete existing failure reports** - Only create/update them. The unit-fixer agent is responsible for deletion when ALL tests pass
 
 **Example failure log format:**
 ```markdown
@@ -235,7 +236,7 @@ Action: Set `app.tenant_id` in query builder before executing queries
 4. Run ALL unit tests (including architecture tests if they exist)
 5. Parse results
 6. **CRITICAL - IF ANY TESTS FAIL**:
-   - **YOU MUST** use the Write tool to create `.autoflow/.failures/sprint-{ID}-unit-tests.md`
+   - **YOU MUST** use the Write tool to create `/opt/workspaces/login/.autoflow/.failures/sprint-{ID}-unit-tests.md`
    - Include ONLY the focused failure information described in "Failure Logging" section above
    - This file is REQUIRED for the fixer agent to work properly
    - DO NOT skip this step - the system depends on this file existing!

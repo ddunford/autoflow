@@ -531,15 +531,7 @@ Only fix what's broken - preserve all existing content."#,
             .map(|(idx, _)| idx)
             .collect();
 
-        if runnable.is_empty() {
-            println!(
-                "\n{}",
-                "No runnable sprints found. All sprints are either complete, blocked, or waiting for dependencies."
-                    .yellow()
-            );
-            return Ok(());
-        }
-
+        // Return runnable sprints (even if empty - continuous mode loop will handle it)
         println!(
             "Running {} sprint(s)",
             runnable.len().to_string().bright_green()
@@ -655,7 +647,7 @@ Only fix what's broken - preserve all existing content."#,
         }
 
         if !indices_to_run.is_empty() {
-            // Run specific sprint(s) only
+            // Run specific sprint(s) first
             for idx in indices_to_run {
                 let sprint = &mut sprints_data.sprints[idx];
 
@@ -698,9 +690,19 @@ Only fix what's broken - preserve all existing content."#,
                 sprints_data.save(sprints_path)
                     .context("Failed to save sprint progress")?;
             }
-        } else {
-            // Continuous mode loop
-            loop {
+
+            // After running specific sprints, continue in continuous mode if no --sprint flag was provided
+            // (This handles the case where we ran a blocked critical sprint and should continue)
+            if sprint.is_none() {
+                println!("\n{}", "Transitioning to continuous mode...".bright_green());
+            } else {
+                // Specific sprint(s) requested via --sprint flag, exit after completing them
+                return Ok(());
+            }
+        }
+
+        // Continuous mode loop
+        loop {
                 // Re-evaluate runnable sprints after each completion
                 let runnable: Vec<usize> = sprints_data
                 .sprints
@@ -714,8 +716,16 @@ Only fix what's broken - preserve all existing content."#,
                         return false;
                     }
 
-                    // must_complete_first only blocks if BLOCKED, not if just incomplete
-                    // (Dependencies handle execution order, must_complete_first only stops on failure)
+                    // Check if any must_complete_first sprint is not done
+                    // If so, only allow that sprint to run (blocks all others)
+                    let has_incomplete_critical = sprints_data
+                        .sprints
+                        .iter()
+                        .any(|other| other.must_complete_first && other.status != SprintStatus::Done);
+
+                    if has_incomplete_critical && !s.must_complete_first {
+                        return false; // Block non-critical sprints when critical sprint is incomplete
+                    }
 
                     // Check if all dependencies are satisfied
                     let dependencies_satisfied = s.dependencies.iter().all(|dep_id| {
@@ -792,7 +802,6 @@ Only fix what's broken - preserve all existing content."#,
             // Save progress after each sprint
             sprints_data.save(sprints_path)
                 .context("Failed to save sprint progress")?;
-            }
         }
     }
 

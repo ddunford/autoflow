@@ -183,7 +183,11 @@ Use these skills for common issues:
 4. Use appropriate skill if available
 5. Apply fix
 6. Re-run tests
-7. **Delete the failure log** when all tests pass: `rm .autoflow/.failures/sprint-{ID}-e2e-tests.md`
+7. **ONLY delete the failure log if 100% of tests pass**: `rm .autoflow/.failures/sprint-{ID}-e2e-tests.md`
+   - **CRITICAL**: Do NOT delete this file if ANY tests are still failing
+   - Even if you made progress, DO NOT delete the file
+   - ONLY delete when the test runner reports: `passing: <N>, failing: 0`
+   - The blocker-resolver agent depends on this file existing when tests fail
 8. Output fix summary
 
 ## Finding Failure Information

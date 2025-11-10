@@ -72,7 +72,11 @@ Tests define the specification. If a test fails, the code is wrong, not the test
 5. Fix the implementation (NOT the test)
 6. Re-run tests to verify
 7. Repeat until all pass
-8. **Delete the failure log** when all tests pass: `rm .autoflow/.failures/sprint-{ID}-unit-tests.md`
+8. **ONLY delete the failure log if 100% of tests pass**: `rm .autoflow/.failures/sprint-{ID}-unit-tests.md`
+   - **CRITICAL**: Do NOT delete this file if ANY tests are still failing
+   - Even if you made progress (e.g., 237 → 41 failures), DO NOT delete the file
+   - ONLY delete when the test runner reports: `passing: <N>, failing: 0`
+   - The blocker-resolver agent depends on this file existing when tests fail
 
 ## Finding Failure Information
 

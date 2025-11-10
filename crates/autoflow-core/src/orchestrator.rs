@@ -73,6 +73,21 @@ impl Orchestrator {
                     Ok(analysis) => {
                         tracing::info!("Blocker analysis complete: {}", analysis);
 
+                        // Mark that this sprint now uses blocker-resolver
+                        // This means future failures will return to BLOCKED instead of unit-fixer
+                        sprint.uses_blocker_resolver = true;
+
+                        // Create git commit for blocker-resolver fixes
+                        if self.enable_auto_commit {
+                            if let Some(ref project_path) = self.project_path {
+                                tracing::debug!("Committing blocker-resolver fixes for sprint {}", sprint.id);
+                                let commit_msg = format!("Sprint {}: Fix blocked issues (blocker-resolver)", sprint.id);
+                                if let Err(e) = commit_project_changes(project_path, sprint, &commit_msg) {
+                                    tracing::warn!("Failed to create git commit for blocker-resolver: {}", e);
+                                }
+                            }
+                        }
+
                         // Blocker-resolver may have fixed the issue, retry from test phase
                         tracing::info!("Blocker-resolver completed, resetting sprint {} to RUN_UNIT_TESTS to verify fix", sprint.id);
                         sprint.status = SprintStatus::RunUnitTests;
@@ -180,12 +195,25 @@ impl Orchestrator {
                             max_retries
                         );
 
-                        // Check if we've exceeded max retries
+                        // Check if we've exceeded max retries OR if this sprint uses blocker-resolver
                         if *count >= max_retries {
                             tracing::error!(
                                 "Sprint {} exceeded max retries for {:?}, marking as BLOCKED",
                                 sprint.id,
                                 current_status
+                            );
+                            sprint.status = SprintStatus::Blocked;
+                            sprint.blocked_count = Some(*count);
+                            sprint.last_updated = Utc::now();
+                        } else if sprint.uses_blocker_resolver {
+                            // Sprint has been through blocker-resolver before
+                            // Send it back to BLOCKED instead of using unit-fixer/e2e-fixer
+                            // This prevents tactical fixes from breaking strategic changes
+                            tracing::warn!(
+                                "Sprint {} uses blocker-resolver - returning to BLOCKED instead of fix phase (retry {}/{})",
+                                sprint.id,
+                                count,
+                                max_retries
                             );
                             sprint.status = SprintStatus::Blocked;
                             sprint.blocked_count = Some(*count);

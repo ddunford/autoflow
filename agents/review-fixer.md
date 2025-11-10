@@ -57,7 +57,11 @@ You must address ALL of the following:
    - Double-check nothing was missed
 3. Re-run checks if possible
 4. Verify ALL issues are resolved (not just high-priority ones)
-5. **Delete the failure log** when all issues fixed: `rm .autoflow/.failures/sprint-{ID}-review.md`
+5. **ONLY delete the failure log if ALL issues are fixed**: `rm .autoflow/.failures/sprint-{ID}-review.md`
+   - **CRITICAL**: Do NOT delete this file if ANY review issues remain unfixed
+   - Even if you made progress, DO NOT delete the file
+   - ONLY delete when ALL review comments have been addressed
+   - The blocker-resolver agent depends on this file existing when issues remain
 6. Output summary of ALL fixes applied
 
 **Remember**: Your goal is to achieve a perfect score on re-review. Fix everything, not just the critical issues.
