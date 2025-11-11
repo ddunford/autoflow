@@ -246,11 +246,81 @@ To be determined during implementation.
                         if result.success {
                             println!("  {} UI docs generated (UI_SPEC, TESTING_STRATEGY)", "✓".green());
                         } else {
-                            println!("  {} UI agent completed with warnings", "⚠".yellow());
+                            println!("  {} UI agent failed - check .autoflow/.debug/ logs for details", "⚠".yellow());
+                            // Create minimal fallback if UI_SPEC doesn't exist
+                            if !std::path::Path::new(".autoflow/docs/UI_SPEC.md").exists() {
+                                let idea_content = std::fs::read_to_string("IDEA.md").unwrap_or_default();
+                                let minimal_ui = format!(r#"# UI Specification
+
+## Original Idea
+
+{}
+
+## UI Pages
+To be determined during implementation.
+
+## Design System
+To be determined during implementation.
+"#, idea_content);
+                                std::fs::write(".autoflow/docs/UI_SPEC.md", minimal_ui)?;
+                            }
+                            if !std::path::Path::new(".autoflow/docs/TESTING_STRATEGY.md").exists() {
+                                let minimal_testing = r#"# Testing Strategy
+
+## Framework Choices
+- Unit: Vitest/Jest with React Testing Library
+- E2E: Playwright/Cypress
+- Backend: PHPUnit/Pest
+
+## Coverage Requirements
+- Overall: 80% minimum
+- Critical paths: 100%
+
+## What to Test
+- Unit: Business logic, utilities, components, hooks
+- Integration: API endpoints, database ops, auth flows
+- E2E: Critical user flows
+"#;
+                                std::fs::write(".autoflow/docs/TESTING_STRATEGY.md", minimal_testing)?;
+                            }
                         }
                     }
                     Err(e) => {
-                        println!("  {} UI docs generation failed (may not be applicable): {}", "⚠".yellow(), e);
+                        println!("  {} UI docs generation failed: {}", "⚠".yellow(), e);
+                        println!("  {} Creating minimal fallback docs...", "→".yellow());
+                        // Create minimal fallback docs
+                        let idea_content = std::fs::read_to_string("IDEA.md").unwrap_or_default();
+                        let minimal_ui = format!(r#"# UI Specification
+
+## Original Idea
+
+{}
+
+## UI Pages
+To be determined during implementation.
+
+## Design System
+To be determined during implementation.
+"#, idea_content);
+                        std::fs::write(".autoflow/docs/UI_SPEC.md", minimal_ui)?;
+
+                        let minimal_testing = r#"# Testing Strategy
+
+## Framework Choices
+- Unit: Vitest/Jest with React Testing Library
+- E2E: Playwright/Cypress
+- Backend: PHPUnit/Pest
+
+## Coverage Requirements
+- Overall: 80% minimum
+- Critical paths: 100%
+
+## What to Test
+- Unit: Business logic, utilities, components, hooks
+- Integration: API endpoints, database ops, auth flows
+- E2E: Critical user flows
+"#;
+                        std::fs::write(".autoflow/docs/TESTING_STRATEGY.md", minimal_testing)?;
                     }
                 }
 

@@ -57,9 +57,17 @@ You must address ALL of the following:
    - Double-check nothing was missed
 3. Re-run checks if possible
 4. Verify ALL issues are resolved (not just high-priority ones)
-5. **ONLY delete the failure log if ALL issues are fixed**: `rm .autoflow/.failures/sprint-{ID}-review.md`
-   - **CRITICAL**: Do NOT delete this file if ANY review issues remain unfixed
-   - Even if you made progress, DO NOT delete the file
+5. **Archive the failure log before deleting**:
+   ```bash
+   # Archive with timestamp
+   cp .autoflow/.failures/sprint-{ID}-review.md .autoflow/.failures/archive/sprint-{ID}-review-$(date +%Y%m%d_%H%M%S).md
+
+   # ONLY delete if ALL issues are fixed
+   rm .autoflow/.failures/sprint-{ID}-review.md
+   ```
+   - **CRITICAL**: Do NOT delete the main file if ANY review issues remain unfixed
+   - ALWAYS archive before deleting (even if all issues fixed)
+   - Even if you made progress, DO NOT delete the file unless ALL issues resolved
    - ONLY delete when ALL review comments have been addressed
    - The blocker-resolver agent depends on this file existing when issues remain
 6. Output summary of ALL fixes applied
@@ -201,9 +209,10 @@ After fixing all issues, output a summary:
 **CRITICAL - Respect project structure:**
 - ❌ DO NOT move infrastructure files (docker-compose.yml, nginx.conf, etc.) to project root
 - ❌ DO NOT create files in project root (except .gitignore which should already exist)
-- ✅ ALL infrastructure files belong in `/src/` or `/tmp_src/` directory
-- ✅ Backend code goes in `/src/backend/` or `/tmp_src/backend/`
-- ✅ Frontend code goes in `/src/frontend/` or `/tmp_src/frontend/`
+- ✅ ALL infrastructure files belong in `/src/` directory ONLY
+- ✅ Backend code goes in `/src/backend/` ONLY
+- ✅ Frontend code goes in `/src/frontend/` ONLY
+- ❌ NEVER create files in `/tmp_src/` - it should not exist
 - ✅ Only edit existing files or create new files in their proper locations
 
 ## Start Now

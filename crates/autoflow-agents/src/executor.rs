@@ -444,7 +444,11 @@ async fn execute_agent_internal(
     // Log completion to debug logger
     if let Some(ref logger) = debug_logger {
         if !status.success() {
-            let error_msg = format!("Agent exited with status: {}\nStderr: {}", status, error_output);
+            let error_msg = if error_output.trim().is_empty() {
+                format!("Agent exited with status: {} (no stderr - likely API error, rate limit, or token limit)", status)
+            } else {
+                format!("Agent exited with status: {}\nStderr: {}", status, error_output)
+            };
             let _ = logger.log_agent_end(agent_name, status.success(), Some(&error_msg));
         } else {
             let _ = logger.log_agent_end(agent_name, status.success(), None::<&str>);

@@ -345,6 +345,11 @@ impl Orchestrator {
             sprint.workflow_type
         );
 
+        // Archive any existing failure reports before running agents that write to .failures
+        if let Some(ref project_path) = self.project_path {
+            archive_failure_reports_before_agent(project_path, sprint.id, agent_name);
+        }
+
         // Execute agent
         let result = execute_agent(agent_name, &context, max_turns, Some(sprint.id))
             .await
@@ -473,4 +478,47 @@ fn parse_review_results(output: &str) -> bool {
          Defaulting to PASSED. Please ensure reviewer agent outputs the required marker."
     );
     true
+}
+
+/// Archive existing failure reports before running agents that write to .failures
+/// This preserves iteration history for debugging infinite loops
+fn archive_failure_reports_before_agent(project_path: &PathBuf, sprint_id: u32, agent_name: &str) {
+    use chrono::Local;
+    use std::fs;
+
+    // Map agent names to their failure file patterns
+    let failure_file = match agent_name {
+        "reviewer" => format!("sprint-{}-review.md", sprint_id),
+        "unit-test-runner" => format!("sprint-{}-unit-tests.md", sprint_id),
+        "e2e-test-runner" => format!("sprint-{}-integration-tests.md", sprint_id),
+        "blocker-resolver" => format!("blocker-analysis-sprint-{}.md", sprint_id),
+        _ => return, // Agent doesn't write to .failures
+    };
+
+    let failures_dir = project_path.join(".autoflow").join(".failures");
+    let archive_dir = failures_dir.join("archive");
+    let failure_path = failures_dir.join(&failure_file);
+
+    // Only archive if the file exists
+    if !failure_path.exists() {
+        return;
+    }
+
+    // Ensure archive directory exists
+    if let Err(e) = fs::create_dir_all(&archive_dir) {
+        tracing::warn!("Failed to create archive directory: {}", e);
+        return;
+    }
+
+    // Create timestamped archive filename
+    let timestamp = Local::now().format("%Y%m%d_%H%M%S");
+    let archive_filename = failure_file.replace(".md", &format!("-{}.md", timestamp));
+    let archive_path = archive_dir.join(&archive_filename);
+
+    // Copy to archive
+    if let Err(e) = fs::copy(&failure_path, &archive_path) {
+        tracing::warn!("Failed to archive {}: {}", failure_file, e);
+    } else {
+        tracing::info!("Archived {} to archive/{}", failure_file, archive_filename);
+    }
 }
