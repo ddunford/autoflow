@@ -39,7 +39,6 @@ pub async fn run(template: Option<String>) -> anyhow::Result<()> {
     // Create directory structure
     println!("\n{}", "Creating directory structure...".bright_white());
     fs::create_dir_all(".autoflow/docs")?;
-    fs::create_dir_all(".autoflow/phase-1/sprints")?;
     fs::create_dir_all(".claude")?;
     info!("✓ Directories created");
 
@@ -66,9 +65,8 @@ pub async fn run(template: Option<String>) -> anyhow::Result<()> {
         println!("{}", "Creating .gitignore...".bright_white());
         let gitignore = r#"
 # AutoFlow
-.autoflow/phase-*/
-.autoflow/bugs/
-.autoflow/metrics/
+.autoflow/.debug/
+.autoflow/.failures/
 
 # Environment
 .env

@@ -18,11 +18,8 @@ impl Paths {
     /// Settings path
     pub const SETTINGS_JSON: &'static str = ".autoflow/settings.json";
 
-    /// Bugs directory
+    /// Bugs directory (used by autoflow fix command)
     pub const BUGS_DIR: &'static str = ".autoflow/bugs";
-
-    /// Tasks directory
-    pub const TASKS_DIR: &'static str = ".autoflow/tasks";
 
     /// Build spec path
     pub const BUILD_SPEC: &'static str = "BUILD_SPEC.md";
