@@ -5,7 +5,7 @@ mod sync;
 
 #[derive(Parser)]
 #[command(name = "autoflow")]
-#[command(version = "0.1.0")]
+#[command(version = env!("CARGO_PKG_VERSION"))]
 #[command(about = "Best-in-class autonomous coding agent", long_about = None)]
 struct Cli {
     #[command(subcommand)]
