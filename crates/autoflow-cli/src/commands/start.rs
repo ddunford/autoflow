@@ -1,7 +1,10 @@
 use anyhow::{bail, Context};
 use autoflow_core::Orchestrator;
 use autoflow_data::{SprintsYaml, SprintStatus};
-use autoflow_utils::{check_for_updates, should_check_for_updates, prompt_and_update, update_check_timestamp};
+use autoflow_utils::{
+    check_for_updates, should_check_for_updates, prompt_and_update, update_check_timestamp,
+    check_binary_update, prompt_and_install_binary_update,
+};
 use colored::*;
 use std::path::{Path, PathBuf};
 
@@ -17,6 +20,27 @@ pub async fn run(parallel: bool, sprint: Option<u32>, live: bool) -> anyhow::Res
 
     // Check for updates (if enabled and interval has passed)
     if should_check_for_updates().unwrap_or(false) {
+        // First check for binary updates
+        match check_binary_update().await {
+            Ok(Some(binary_update)) => {
+                // Prompt user and install if they accept
+                let updated = prompt_and_install_binary_update(&binary_update).await?;
+                if updated {
+                    // Binary was updated, restart is needed
+                    println!("{}", "⚠️  Binary updated! Please restart the command.".bright_yellow().bold());
+                    return Ok(());
+                }
+            }
+            Ok(None) => {
+                // No binary update available
+            }
+            Err(e) => {
+                // Silently ignore binary update check failures
+                tracing::debug!("Binary update check failed: {}", e);
+            }
+        }
+
+        // Then check for agent/skill updates
         match check_for_updates() {
             Ok(info) if info.has_updates() => {
                 // Prompt user and update if they accept
