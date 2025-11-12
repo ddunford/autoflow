@@ -5,7 +5,7 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
-const GITHUB_REPO: &str = "anthropics/autoflow"; // Update with actual repo
+const GITHUB_REPO: &str = "ddunford/autoflow";
 const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
