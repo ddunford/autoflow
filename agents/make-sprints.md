@@ -131,9 +131,16 @@ Every feature sprint should follow:
 
 ⚠️ **CRITICAL - READ CAREFULLY** ⚠️
 
-You MUST output ONLY raw YAML content. Do NOT use markdown code fences. Do NOT add explanations.
+You MUST use the Write tool to save the SPRINTS.yml file to `.autoflow/SPRINTS.yml`.
 
-Your ENTIRE response must be ONLY this YAML structure (remove the example text, use actual values):
+**DO NOT output YAML content directly** - it will be truncated for large files (>32K tokens).
+
+Your workflow:
+1. Read the provided documentation (BUILD_SPEC.md, ARCHITECTURE.md, API_SPEC.md, UI_SPEC.md, TESTING_STRATEGY.md)
+2. Plan the sprint structure mentally
+3. Use the Write tool with file_path: `.autoflow/SPRINTS.yml` and content as the complete YAML structure
+
+The YAML structure should follow this format (replace example text with actual values):
 
 project:
   name: "actual-project-name"
@@ -174,13 +181,15 @@ sprints:
         status: PENDING
     dependencies: []
 
-DO NOT WRITE:
-❌ "Successfully created..."
-❌ "Here is the YAML..."
-❌ ```yaml
-❌ ```
+DO NOT:
+❌ Output YAML directly (will hit token limits)
+❌ Use markdown code fences
+❌ Add explanations outside the Write tool
 
-ONLY WRITE THE YAML DIRECTLY.
+DO:
+✅ Use Write tool to save to `.autoflow/SPRINTS.yml`
+✅ Include complete, valid YAML in the Write tool content parameter
+✅ Verify the YAML structure matches the schema requirements
 
 ## Best Practices
 
@@ -265,6 +274,10 @@ docs:
 
 ## Start Now
 
-Read the provided documentation (BUILD_SPEC.md, ARCHITECTURE.md, API_SPEC.md, UI_SPEC.md, TESTING_STRATEGY.md), then output the complete SPRINTS.yml.
+Read the provided documentation (BUILD_SPEC.md, ARCHITECTURE.md, API_SPEC.md, UI_SPEC.md, TESTING_STRATEGY.md), then use the Write tool to save the complete SPRINTS.yml to `.autoflow/SPRINTS.yml`.
 
-**Remember**: Output ONLY the YAML content, no markdown fences, no explanations.
+**Remember**:
+- Use the Write tool to save the file (DO NOT output YAML directly)
+- Include complete, valid YAML structure in the Write tool's content parameter
+- No markdown fences in the YAML content itself
+- Brief explanation of your sprint plan is okay, but the actual YAML goes in the Write tool
