@@ -11,11 +11,16 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.10"
 edition = "2021"
 authors = ["AutoFlow Contributors"]
 license = "MIT"
-repository = "https://github.com/autoflow/autoflow"
+description = "Best-in-class autonomous coding agent"
+repository = "https://github.com/ddunford/autoflow"
+homepage = "https://github.com/ddunford/autoflow"
+documentation = "https://github.com/ddunford/autoflow"
+keywords = ["ai", "coding", "agent", "automation", "autonomous"]
+categories = ["development-tools", "command-line-utilities"]
 
 [workspace.dependencies]
 # Async runtime
@@ -50,6 +55,7 @@ git2 = "0.19"
 # File operations
 walkdir = "2.4"
 glob = "0.3"
+dirs = "5.0"
 
 # Date/time
 chrono = { version = "0.4", features = ["serde"] }
@@ -60,6 +66,13 @@ toml = "0.8"
 
 # HTTP client
 reqwest = { version = "0.12", features = ["json"] }
+
+# Version comparison
+semver = "1.0"
+
+# Archive extraction
+tar = "0.4"
+flate2 = "1.0"
 
 # Testing
 [workspace.dev-dependencies]

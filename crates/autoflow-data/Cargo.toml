@@ -4,6 +4,15 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+description.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+# Include schema files in published crate
+include = ["src/**/*", "schemas/**/*"]
 
 [dependencies]
 serde = { workspace = true }
@@ -12,5 +21,6 @@ serde_yaml = { workspace = true }
 chrono = { workspace = true }
 thiserror = { workspace = true }
 validator = { workspace = true }
+jsonschema = { workspace = true }
 git2 = { workspace = true }
 toml = { workspace = true }

@@ -1,3 +1,4 @@
+use autoflow_utils::{check_for_updates, should_check_for_updates, prompt_and_update, update_check_timestamp};
 use colored::*;
 use std::fs;
 use std::path::Path;
@@ -5,6 +6,23 @@ use tracing::{info, warn};
 
 pub async fn run(template: Option<String>) -> anyhow::Result<()> {
     println!("{}", "📦 Initializing AutoFlow project...".bright_cyan().bold());
+
+    // Check for updates (if enabled and interval has passed)
+    if should_check_for_updates().unwrap_or(false) {
+        match check_for_updates() {
+            Ok(info) if info.has_updates() => {
+                // Prompt user and update if they accept
+                prompt_and_update(&info)?;
+            }
+            Ok(_) => {
+                // No updates, just update timestamp
+                update_check_timestamp()?;
+            }
+            Err(_) => {
+                // Silently ignore update check failures
+            }
+        }
+    }
 
     // Check if already initialized
     if Path::new(".autoflow").exists() {
@@ -21,25 +39,24 @@ pub async fn run(template: Option<String>) -> anyhow::Result<()> {
     // Create directory structure
     println!("\n{}", "Creating directory structure...".bright_white());
     fs::create_dir_all(".autoflow/docs")?;
-    fs::create_dir_all(".autoflow/phase-1/sprints")?;
     fs::create_dir_all(".claude")?;
     info!("✓ Directories created");
 
     // Copy SPRINTS.yml template
     println!("{}", "Creating SPRINTS.yml...".bright_white());
-    let sprints_template = include_str!("../../../../templates/SPRINTS.template.yml");
+    let sprints_template = include_str!("../../templates/SPRINTS.template.yml");
     fs::write(".autoflow/SPRINTS.yml", sprints_template)?;
     info!("✓ SPRINTS.yml created");
 
     // Copy CLAUDE.md template
     println!("{}", "Creating CLAUDE.md...".bright_white());
-    let claude_template = include_str!("../../../../templates/CLAUDE.template.md");
+    let claude_template = include_str!("../../templates/CLAUDE.template.md");
     fs::write(".claude/CLAUDE.md", claude_template)?;
     info!("✓ CLAUDE.md created");
 
     // Copy settings.json template
     println!("{}", "Creating .claude/settings.json...".bright_white());
-    let settings_template = include_str!("../../../../templates/.claude/settings.json.template");
+    let settings_template = include_str!("../../templates/.claude/settings.json.template");
     fs::write(".claude/settings.json", settings_template)?;
     info!("✓ settings.json created");
 
@@ -48,9 +65,8 @@ pub async fn run(template: Option<String>) -> anyhow::Result<()> {
         println!("{}", "Creating .gitignore...".bright_white());
         let gitignore = r#"
 # AutoFlow
-.autoflow/phase-*/
-.autoflow/bugs/
-.autoflow/metrics/
+.autoflow/.debug/
+.autoflow/.failures/
 
 # Environment
 .env

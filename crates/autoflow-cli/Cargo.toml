@@ -4,16 +4,26 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+description.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+# Include schema files and templates in published crate
+include = ["src/**/*", "schemas/**/*", "templates/**/*"]
 
 [[bin]]
 name = "autoflow"
 path = "src/main.rs"
 
 [dependencies]
-autoflow-data = { path = "../autoflow-data" }
-autoflow-core = { path = "../autoflow-core" }
-autoflow-quality = { path = "../autoflow-quality" }
-autoflow-utils = { path = "../autoflow-utils" }
+autoflow-data = { version = "0.1.10", path = "../autoflow-data" }
+autoflow-core = { version = "0.1.10", path = "../autoflow-core" }
+autoflow-quality = { version = "0.1.10", path = "../autoflow-quality" }
+autoflow-git = { version = "0.1.10", path = "../autoflow-git" }
+autoflow-utils = { version = "0.1.10", path = "../autoflow-utils" }
 
 clap = { workspace = true }
 tokio = { workspace = true }
@@ -21,6 +31,9 @@ anyhow = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 colored = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
+serde_yaml = { workspace = true }
 chrono = { workspace = true }
-autoflow-agents = { path = "../autoflow-agents" }
+autoflow-agents = { version = "0.1.10", path = "../autoflow-agents" }
+walkdir = { workspace = true }

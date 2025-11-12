@@ -70,7 +70,7 @@ impl SchemaValidator {
         }
 
         // Fallback to embedded schema
-        let schema_json: Value = serde_json::from_str(include_str!("../../../schemas/sprints.schema.json"))
+        let schema_json: Value = serde_json::from_str(include_str!("../schemas/sprints.schema.json"))
             .map_err(|e| AutoFlowError::ValidationError(format!("Invalid embedded schema: {}", e)))?;
 
         let compiled = JSONSchema::options()

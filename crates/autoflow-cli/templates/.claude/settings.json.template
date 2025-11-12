@@ -1,0 +1,7 @@
+{
+  "model": "claude-sonnet-4-5-20250929",
+  "maxTurns": 50,
+  "tools": {
+    "enabled": ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
+  }
+}

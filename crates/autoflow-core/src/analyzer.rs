@@ -28,7 +28,44 @@ impl CodebaseAnalysis {
 
         md.push_str("# Integration Guide\n\n");
         md.push_str(&format!("**Generated**: {}\n\n", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S")));
-        md.push_str("---\n\n");
+
+        // Check if this is an empty/new project
+        let is_empty_project = self.tech_stack.language == "Unknown"
+            && self.frameworks.is_empty()
+            && self.integration_points.is_empty();
+
+        if is_empty_project {
+            md.push_str(r#"
+> **Note**: This is a new project with no existing code. This guide is generated automatically
+> by `autoflow analyze` and is used when adding features to existing codebases.
+> For new projects created with `autoflow create`, all documentation is in `.autoflow/docs/`
+> and this file can be ignored.
+
+---
+
+## Project Status
+
+This appears to be a new project with no existing codebase. The analyzer detected:
+- No recognizable tech stack (no package.json, composer.json, Cargo.toml, etc.)
+- No frameworks
+- Empty source directories
+
+## Next Steps
+
+If you're starting a new project:
+1. Check `.autoflow/docs/` for your complete project specification
+2. Run `autoflow start` to begin implementation
+3. This INTEGRATION_GUIDE.md will be populated as code is added
+
+If you have existing code that wasn't detected:
+1. Ensure your project files are in the correct location
+2. Run `autoflow analyze` again after setting up your project structure
+3. Supported: Node.js, PHP/Laravel, Rust, Python, Go projects
+
+"#);
+        } else {
+            md.push_str("---\n\n");
+        }
 
         // Tech Stack
         md.push_str("## Tech Stack\n\n");

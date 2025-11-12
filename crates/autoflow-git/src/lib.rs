@@ -1,1 +1,3 @@
-// autoflow-git - Placeholder
+pub mod worktree;
+
+pub use worktree::{WorktreeManager, WorktreeInfo};

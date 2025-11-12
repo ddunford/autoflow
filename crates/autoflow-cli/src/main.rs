@@ -1,10 +1,11 @@
 use clap::{Parser, Subcommand};
 
 mod commands;
+mod sync;
 
 #[derive(Parser)]
 #[command(name = "autoflow")]
-#[command(version = "0.1.0")]
+#[command(version = env!("CARGO_PKG_VERSION"))]
 #[command(about = "Best-in-class autonomous coding agent", long_about = None)]
 struct Cli {
     #[command(subcommand)]
@@ -24,6 +25,17 @@ enum Commands {
         force: bool,
     },
 
+    /// Create new project from IDEA.md (full autonomous setup)
+    Create {
+        /// Project name (optional, uses current directory if IDEA.md exists)
+        #[arg(value_name = "NAME", required = false)]
+        name: Option<String>,
+
+        /// Path to IDEA.md file (optional, uses ./IDEA.md or creates template if not provided)
+        #[arg(short, long)]
+        idea: Option<String>,
+    },
+
     /// Initialize new project with AutoFlow
     Init {
         /// Use specific template (e.g., "react-node", "laravel-react")
@@ -40,6 +52,10 @@ enum Commands {
         /// Run specific sprint by ID
         #[arg(short, long)]
         sprint: Option<u32>,
+
+        /// Disable live streaming logs (enabled by default)
+        #[arg(long)]
+        no_live: bool,
     },
 
     /// Show sprint progress and status
@@ -74,6 +90,12 @@ enum Commands {
         /// Launch Playwright in headed mode
         #[arg(long)]
         playwright_headed: bool,
+    },
+
+    /// Update documentation and regenerate sprints based on feedback
+    Pivot {
+        /// Feedback/instruction for updating documentation
+        instruction: String,
     },
 
     /// Rollback sprint
@@ -119,6 +141,28 @@ enum Commands {
     /// Manage development environment
     #[command(subcommand)]
     Env(EnvCommands),
+
+    /// Manage MCP servers
+    #[command(subcommand)]
+    Mcp(McpCommands),
+
+    /// View agent execution logs
+    Logs {
+        /// Follow log output (tail -f style)
+        #[arg(short, long)]
+        follow: bool,
+
+        /// View live streaming logs (.jsonl format)
+        #[arg(short, long)]
+        live: bool,
+    },
+
+    /// Check for and install updates
+    Update {
+        /// Force update check (ignore 24h interval)
+        #[arg(short, long)]
+        force: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -197,6 +241,28 @@ enum EnvCommands {
     Health,
 }
 
+#[derive(Subcommand, Debug)]
+enum McpCommands {
+    /// Install MCP servers (installs all recommended if none specified)
+    Install {
+        /// Specific servers to install (memory, playwright, github, postgres, etc.)
+        servers: Vec<String>,
+
+        /// Install to project level (.autoflow/settings.json) instead of global
+        #[arg(long)]
+        project: bool,
+    },
+
+    /// List installed MCP servers
+    List,
+
+    /// Show information about available servers
+    Info {
+        /// Server name (optional, shows all if not specified)
+        server: Option<String>,
+    },
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
@@ -208,16 +274,28 @@ async fn main() -> anyhow::Result<()> {
         .with_target(false)
         .init();
 
+    // Auto-sync agents and skills to ~/.claude/
+    if let Err(e) = sync::sync_agents_and_skills().await {
+        if cli.verbose {
+            eprintln!("Warning: Failed to sync agents/skills: {}", e);
+        }
+    }
+
     // Execute command
     match cli.command {
         Commands::Install { force } => {
             commands::install::run(force).await?;
         }
+        Commands::Create { name, idea } => {
+            commands::create::run(name, idea).await?;
+        }
         Commands::Init { template } => {
             commands::init::run(template).await?;
         }
-        Commands::Start { parallel, sprint } => {
-            commands::start::run(parallel, sprint).await?;
+        Commands::Start { parallel, sprint, no_live } => {
+            // Live logging is enabled by default, disabled with --no-live
+            let live = !no_live;
+            commands::start::run(parallel, sprint, live).await?;
         }
         Commands::Status { json } => {
             commands::status::run(json).await?;
@@ -237,6 +315,9 @@ async fn main() -> anyhow::Result<()> {
             playwright_headed,
         } => {
             commands::fix::run(description, auto_fix, playwright_headed).await?;
+        }
+        Commands::Pivot { instruction } => {
+            commands::pivot::run(instruction).await?;
         }
         Commands::Rollback { sprint } => {
             commands::rollback::run(sprint).await?;
@@ -262,6 +343,23 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::Env(cmd) => {
             commands::env::run(cmd).await?;
+        }
+        Commands::Mcp(cmd) => match cmd {
+            McpCommands::Install { servers, project } => {
+                commands::mcp::run_install(servers, project).await?;
+            }
+            McpCommands::List => {
+                commands::mcp::run_list().await?;
+            }
+            McpCommands::Info { server } => {
+                commands::mcp::run_info(server).await?;
+            }
+        },
+        Commands::Logs { follow, live } => {
+            commands::logs::run(follow, live).await?;
+        }
+        Commands::Update { force } => {
+            commands::update::run(force).await?;
         }
     }
 

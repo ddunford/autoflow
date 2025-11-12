@@ -82,16 +82,38 @@ Return ONLY valid YAML (no markdown code blocks).
     // Execute make-sprints agent
     println!("  Spawning make-sprints agent...");
 
-    // For now, since we don't have claude-code, create a mock sprint
-    // In production, this would call: execute_agent("make-sprints", &context, 10).await?;
+    use autoflow_agents::execute_agent;
 
-    println!("\n{}", "⚠️  Note:".yellow());
-    println!("  Agent execution requires claude-code to be installed");
-    println!("  For now, creating a template sprint...");
-
-    // Create a template sprint
     let next_id = sprints_data.sprints.len() as u32 + 1;
-    let new_sprint = create_template_sprint(next_id, &description);
+
+    // Try to execute the agent, fall back to template if it fails
+    let new_sprint = match execute_agent("make-sprints", &context, 10, None).await {
+        Ok(result) => {
+            if result.success {
+                // Parse the agent output to extract sprint
+                match parse_sprint_from_output(&result.output, next_id, &description) {
+                    Ok(sprint) => {
+                        println!("  {} Agent generated sprint", "✓".green());
+                        sprint
+                    }
+                    Err(e) => {
+                        println!("  {} Failed to parse agent output: {}", "⚠".yellow(), e);
+                        println!("  Creating template sprint instead...");
+                        create_template_sprint(next_id, &description)
+                    }
+                }
+            } else {
+                println!("  {} Agent execution failed", "⚠".yellow());
+                println!("  Creating template sprint instead...");
+                create_template_sprint(next_id, &description)
+            }
+        }
+        Err(e) => {
+            println!("  {} Agent spawn failed: {}", "⚠".yellow(), e);
+            println!("  Creating template sprint instead...");
+            create_template_sprint(next_id, &description)
+        }
+    };
 
     // Add to sprints
     sprints_data.sprints.push(new_sprint.clone());
@@ -120,15 +142,55 @@ Return ONLY valid YAML (no markdown code blocks).
     Ok(())
 }
 
+/// Parse sprint from agent output
+fn parse_sprint_from_output(output: &str, next_id: u32, _description: &str) -> anyhow::Result<Sprint> {
+    // Extract YAML from markdown if present
+    let yaml_content = if output.contains("```yaml") {
+        output
+            .split("```yaml")
+            .nth(1)
+            .and_then(|s| s.split("```").next())
+            .unwrap_or(output)
+            .trim()
+    } else {
+        output.trim()
+    };
+
+    // Write to temp file and parse with SprintsYaml
+    let temp_path = format!("/tmp/sprint-{}.yml", next_id);
+    fs::write(&temp_path, yaml_content)
+        .context("Failed to write temp sprint file")?;
+
+    // Try to load as full SprintsYaml document
+    match SprintsYaml::load(&temp_path) {
+        Ok(sprints_yaml) => {
+            // Extract first sprint
+            if let Some(mut sprint) = sprints_yaml.sprints.into_iter().next() {
+                sprint.id = next_id;
+                let _ = fs::remove_file(&temp_path); // Clean up
+                Ok(sprint)
+            } else {
+                let _ = fs::remove_file(&temp_path);
+                anyhow::bail!("No sprints found in agent output")
+            }
+        }
+        Err(e) => {
+            let _ = fs::remove_file(&temp_path);
+            anyhow::bail!("Failed to parse sprint YAML: {}", e)
+        }
+    }
+}
+
 /// Create a template sprint (used when agent is not available)
 fn create_template_sprint(id: u32, description: &str) -> Sprint {
-    use autoflow_data::{SprintStatus, Task, Priority, TestingRequirements, TestRequirement};
+    use autoflow_data::{SprintStatus, WorkflowType, Task, TaskType, Priority, TestingRequirements, TestRequirement};
     use chrono::Utc;
 
     Sprint {
         id,
         goal: description.to_string(),
         status: SprintStatus::Pending,
+        workflow_type: WorkflowType::Implementation,
         duration: Some("Week 1".to_string()),
         total_effort: "8h".to_string(),
         max_effort: "15h".to_string(),
@@ -144,6 +206,11 @@ fn create_template_sprint(id: u32, description: &str) -> Sprint {
             Task {
                 id: format!("task-{:03}", id),
                 title: format!("Implement {}", description),
+                description: Some(format!("Implement {} feature", description)),
+                r#type: TaskType::Implementation,
+                doc_reference: None,
+                acceptance_criteria: vec!["Feature works as specified".to_string()],
+                test_specification: Some("Unit tests pass".to_string()),
                 effort: "6h".to_string(),
                 priority: Priority::High,
                 feature: description.to_string(),
@@ -173,5 +240,7 @@ fn create_template_sprint(id: u32, description: &str) -> Sprint {
         integration_points: None,
         blocked_count: None,
         must_complete_first: false,
+        failure_reports: vec![],
+        uses_blocker_resolver: false,
     }
 }

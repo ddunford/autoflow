@@ -4,9 +4,18 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+description.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+# Include schema files in published crate
+include = ["src/**/*", "schemas/**/*"]
 
 [dependencies]
-autoflow-data = { path = "../autoflow-data" }
+autoflow-data = { version = "0.1.10", path = "../autoflow-data" }
 tokio = { workspace = true }
 tracing = { workspace = true }
 jsonschema = { workspace = true }
