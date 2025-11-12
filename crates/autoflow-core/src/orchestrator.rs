@@ -88,9 +88,21 @@ impl Orchestrator {
                             }
                         }
 
-                        // Blocker-resolver may have fixed the issue, retry from test phase
-                        tracing::info!("Blocker-resolver completed, resetting sprint {} to RUN_UNIT_TESTS to verify fix", sprint.id);
-                        sprint.status = SprintStatus::RunUnitTests;
+                        // Blocker-resolver may have fixed the issue, determine appropriate status to retry from
+                        // For infrastructure/docs: go to first test/validation phase
+                        // For implementation: go to RUN_UNIT_TESTS
+                        let workflow = get_workflow_definition(sprint.workflow_type);
+
+                        // Try to find a validation phase (has fix_status, requires_validation)
+                        // Otherwise default to WriteCode to restart the workflow
+                        let retry_status = workflow.phases.iter()
+                            .find(|p| p.requires_validation && p.fix_status.is_some())
+                            .map(|p| p.status)
+                            .unwrap_or(SprintStatus::WriteCode);
+
+                        tracing::info!("Blocker-resolver completed, resetting sprint {} ({:?} workflow) to {:?} to verify fix",
+                            sprint.id, sprint.workflow_type, retry_status);
+                        sprint.status = retry_status;
                         sprint.blocked_count = Some(0); // Reset blocked count
                         sprint.last_updated = Utc::now();
 
