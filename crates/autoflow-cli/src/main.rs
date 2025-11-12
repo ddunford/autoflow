@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 mod commands;
 mod embedded;
 mod sync;
+mod update;
 
 #[derive(Parser)]
 #[command(name = "autoflow")]
@@ -294,6 +295,15 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
+    // Auto-check for updates (respects 24h interval and can be disabled)
+    if update::should_check_for_updates() {
+        if let Err(e) = update::check_and_update(cli.verbose).await {
+            if cli.verbose {
+                eprintln!("Warning: Failed to check for updates: {}", e);
+            }
+        }
+    }
+
     // Execute command
     match cli.command {
         Commands::Install { force } => {
@@ -371,8 +381,8 @@ async fn main() -> anyhow::Result<()> {
         Commands::Logs { follow, live } => {
             commands::logs::run(follow, live).await?;
         }
-        Commands::Update { force } => {
-            commands::update::run(force).await?;
+        Commands::Update { force: _force } => {
+            update::update_now(cli.verbose).await?;
         }
     }
 
