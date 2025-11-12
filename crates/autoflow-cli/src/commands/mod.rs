@@ -16,3 +16,4 @@ pub mod skills;
 pub mod env;
 pub mod mcp;
 pub mod logs;
+pub mod update;

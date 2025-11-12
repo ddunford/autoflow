@@ -156,6 +156,13 @@ enum Commands {
         #[arg(short, long)]
         live: bool,
     },
+
+    /// Check for and install updates
+    Update {
+        /// Force update check (ignore 24h interval)
+        #[arg(short, long)]
+        force: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -350,6 +357,9 @@ async fn main() -> anyhow::Result<()> {
         },
         Commands::Logs { follow, live } => {
             commands::logs::run(follow, live).await?;
+        }
+        Commands::Update { force } => {
+            commands::update::run(force).await?;
         }
     }
 
