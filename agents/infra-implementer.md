@@ -268,13 +268,165 @@ services:
 2. Database containers → No user directive (they handle permissions internally)
 3. Use named volumes for databases, bind mounts for application code
 
-## Health Check Requirements
+## Health Check Requirements 🚨 CRITICAL FOR TRAEFIK
+
+**WHY THIS MATTERS:**
+Traefik registers routes based on Docker labels, but **does not wait for containers to be healthy by default**. If your app container starts but isn't healthy (e.g., PHP-FPM not ready, database migrations not run), Traefik will route traffic to it anyway, causing **502 Bad Gateway** or **503 Service Unavailable** errors.
+
+**REQUIRED CONFIGURATION:**
+
+### 1. All Containers Must Have Health Checks
+
+```yaml
+app:
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://127.0.0.1/up"]  # or appropriate endpoint
+    interval: 30s
+    timeout: 10s
+    retries: 3
+    start_period: 60s  # Give app time to start before failing health checks
+```
+
+**Common Health Check Commands:**
+- **Laravel/PHP:** `curl -f http://127.0.0.1/up` or `curl -f http://127.0.0.1/health`
+- **Node/Express:** `curl -f http://127.0.0.1:3000/` or `curl -f http://127.0.0.1:3000/health`
+- **React/Vite:** `curl -f http://127.0.0.1:3000/` (Vite dev server has no /health endpoint)
+- **PostgreSQL:** `pg_isready -U username -d dbname`
+- **Redis:** `redis-cli ping`
+- **MySQL:** `mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD}`
+
+### 2. Use `depends_on` with `condition: service_healthy`
+
+**CRITICAL:** Your app container MUST NOT start until dependencies are healthy:
+
+```yaml
+app:
+  depends_on:
+    postgres:
+      condition: service_healthy  # ✅ REQUIRED - waits for DB to be healthy
+    redis:
+      condition: service_healthy  # ✅ REQUIRED - waits for cache to be healthy
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://127.0.0.1/up"]
+```
+
+**Without `condition: service_healthy`:**
+```yaml
+# ❌ BAD - App starts before DB is ready
+app:
+  depends_on:
+    - postgres  # Only waits for container to START, not be HEALTHY
+```
+
+Result: App crashes with "connection refused" because PostgreSQL isn't ready yet.
+
+**With `condition: service_healthy`:**
+```yaml
+# ✅ GOOD - App waits for DB to be fully ready
+app:
+  depends_on:
+    postgres:
+      condition: service_healthy
+```
+
+Result: App starts only after PostgreSQL passes its health check.
+
+### 3. Traefik-Specific Requirements
+
+If using Traefik, the complete pattern is:
+
+```yaml
+services:
+  app:
+    build: ./docker/app
+    depends_on:
+      postgres:
+        condition: service_healthy  # Wait for DB
+      redis:
+        condition: service_healthy  # Wait for cache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1/up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s  # Laravel needs time for migrations, cache warming
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`example.com`)"
+      - "traefik.http.services.app.loadbalancer.server.port=80"
+    networks:
+      - traefik_proxy
+
+  postgres:
+    image: postgres:16
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d appdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s  # PostgreSQL needs time to initialize
+
+networks:
+  traefik_proxy:
+    external: true
+```
+
+### 4. Health Check Best Practices
+
+- **Use IPv4 (127.0.0.1) not localhost** - Alpine/Docker resolves localhost to IPv6 (::1) which often fails
+- **Fast checks** - Health checks should complete in <3 seconds
+- **Appropriate start_period** - Give services time to initialize:
+  - PostgreSQL: 10-30s
+  - Laravel/PHP: 60s (migrations + cache)
+  - Node.js: 30s
+  - React/Vite dev: 30s
+- **Correct endpoints** - Verify the health endpoint actually exists:
+  - Laravel: Create `/up` route or use `/`
+  - Vite: Use `/` (no built-in health endpoint)
+  - Don't assume `/health` exists unless you created it
+
+### 5. Testing Health Checks
+
+After writing docker-compose.yml, test it:
+
+```bash
+# Start services
+docker compose up -d
+
+# Check health status
+docker compose ps --format "table {{.Service}}\t{{.State}}\t{{.Status}}"
+
+# Wait and watch for services to become healthy
+watch -n 2 'docker compose ps --format "table {{.Service}}\t{{.State}}\t{{.Status}}"'
+
+# If a service is unhealthy, check logs
+docker compose logs <service-name>
+```
+
+**Expected Output:**
+```
+SERVICE     STATE     STATUS
+postgres    running   Up 30 seconds (healthy)
+redis       running   Up 30 seconds (healthy)
+app         running   Up 15 seconds (healthy)
+```
+
+**Common Issues:**
+- `(health: starting)` for >2 minutes → `start_period` too short or wrong health command
+- `(unhealthy)` → Health check command is failing, check logs
+- App healthy but Traefik returns 502 → Port mismatch in Traefik labels
+
+### Summary Checklist
 
 For Traefik/reverse proxy integration:
-- Containers MUST be healthy before routes are registered
-- Health checks MUST succeed reliably
-- Health checks should be fast (<3s)
-- Use appropriate start_period for slow-starting services
+- ✅ **ALL containers have `healthcheck` defined**
+- ✅ **App uses `depends_on` with `condition: service_healthy` for all dependencies**
+- ✅ **Health checks use IPv4 (127.0.0.1) not localhost**
+- ✅ **Health check endpoints actually exist** (test with curl)
+- ✅ **Appropriate `start_period` for each service type**
+- ✅ **Health checks complete in <3 seconds**
+- ✅ **Traefik port matches container's exposed port**
+- ✅ **Test: All services show `(healthy)` status before considering sprint complete**
 
 ## Checklist Before Completing
 
