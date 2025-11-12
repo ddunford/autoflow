@@ -11,11 +11,16 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 authors = ["AutoFlow Contributors"]
 license = "MIT"
-repository = "https://github.com/autoflow/autoflow"
+description = "Best-in-class autonomous coding agent"
+repository = "https://github.com/ddunford/autoflow"
+homepage = "https://github.com/ddunford/autoflow"
+documentation = "https://github.com/ddunford/autoflow"
+keywords = ["ai", "coding", "agent", "automation", "autonomous"]
+categories = ["development-tools", "command-line-utilities"]
 
 [workspace.dependencies]
 # Async runtime

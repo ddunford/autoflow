@@ -9,7 +9,8 @@ use colored::*;
 use std::path::{Path, PathBuf};
 
 pub async fn run(parallel: bool, sprint: Option<u32>, live: bool) -> anyhow::Result<()> {
-    println!("{}", "🚀 Starting AutoFlow...".bright_cyan().bold());
+    let version = env!("CARGO_PKG_VERSION");
+    println!("{} {}", "🚀 Starting AutoFlow".bright_cyan().bold(), format!("v{}", version).dimmed());
 
     // Live logging is now enabled by default
     let live_enabled = live;

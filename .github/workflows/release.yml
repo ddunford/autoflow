@@ -183,18 +183,17 @@ jobs:
           asset_name: autoflow-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.${{ matrix.archive }}.sha256
           asset_content_type: text/plain
 
-  # Disabled for now - enable when ready to publish to crates.io
-  # publish-crates-io:
-  #   name: Publish to crates.io
-  #   needs: [create-release, build]
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
+  publish-crates-io:
+    name: Publish to crates.io
+    needs: [create-release, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  #     - name: Install Rust
-  #       uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
 
-  #     - name: Publish to crates.io
-  #       run: cargo publish --token ${{ secrets.CARGO_TOKEN }}
-  #       continue-on-error: true  # Don't fail if already published
+      - name: Publish to crates.io
+        run: cargo publish -p autoflow-cli --token ${{ secrets.CARGO_TOKEN }}
+        continue-on-error: true  # Don't fail if already published

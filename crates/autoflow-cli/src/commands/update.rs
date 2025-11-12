@@ -17,7 +17,16 @@ pub async fn run(force: bool) -> Result<()> {
             found_updates = true;
             let updated = prompt_and_install_binary_update(&binary_update).await?;
             if updated {
-                println!("{}", "⚠️  Binary updated! Please restart to use the new version.".bright_yellow().bold());
+                println!();
+                println!("{}", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━".bright_green());
+                println!("{}", format!("  ✅ Updated: {} → {}",
+                    env!("CARGO_PKG_VERSION"),
+                    binary_update.version.trim_start_matches('v')
+                ).bright_green().bold());
+                println!("{}", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━".bright_green());
+                println!();
+                println!("{}", "⚠️  Please restart to use the new version:".bright_yellow());
+                println!("   {}", "autoflow start".bright_blue());
                 println!();
                 // Update timestamp so we don't check again immediately
                 update_check_timestamp()?;
