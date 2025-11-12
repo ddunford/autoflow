@@ -26,6 +26,19 @@ AutoFlow is a fully autonomous TDD-driven coding agent that takes you from requi
 - 🎯 Smart sprint state preservation
 
 **Installation**:
+
+**Option 1: Install from crates.io (recommended)**:
+```bash
+cargo install autoflow-cli
+```
+
+**Option 2: Install from GitHub releases**:
+```bash
+# Linux/macOS - Quick install script
+curl -sSL https://raw.githubusercontent.com/ddunford/autoflow/main/scripts/install.sh | sh
+```
+
+**Option 3: Build from source**:
 ```bash
 git clone https://github.com/ddunford/autoflow
 cd autoflow
@@ -285,6 +298,28 @@ cd /path/to/autoflow
 
 ### Installation
 
+**Method 1: Install from crates.io (fastest)**:
+```bash
+# Install the CLI
+cargo install autoflow-cli
+
+# Verify installation
+autoflow --version
+
+# On first run, agents/skills will auto-sync to ~/.claude/
+autoflow start  # or any command
+```
+
+**Method 2: Quick install script (Linux/macOS)**:
+```bash
+# One-line installation
+curl -sSL https://raw.githubusercontent.com/ddunford/autoflow/main/scripts/install.sh | sh
+
+# Verify installation
+autoflow --version
+```
+
+**Method 3: Build from source**:
 ```bash
 # Clone repository
 git clone https://github.com/ddunford/autoflow
@@ -297,13 +332,11 @@ cd autoflow
 autoflow --version
 ```
 
-The installer will:
-- Build the release binary with `cargo build --release`
-- Install to `~/.autoflow/bin/`
-- Copy 13 production agents to `~/.claude/agents/` (with `.agent.md` suffix)
-- Copy skills (if any) to `~/.claude/skills/`
-- Add to your PATH ($HOME/.bashrc or $HOME/.zshrc)
-- Create configuration files
+**What gets installed:**
+- Binary to `~/.autoflow/bin/autoflow` (added to PATH)
+- 13 production agents to `~/.claude/agents/` (with `.agent.md` suffix)
+- Skills (if any) to `~/.claude/skills/`
+- Configuration files in `~/.autoflow/`
 
 **Works with existing Claude Code setup** - Uses `.agent.md` suffix to avoid conflicts with your custom agents.
 
