@@ -4,9 +4,15 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+description.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
-autoflow-data = { path = "../autoflow-data" }
+autoflow-data = { version = "0.1.4", path = "../autoflow-data" }
 tokio = { workspace = true }
 tracing = { workspace = true }
 git2 = { workspace = true }

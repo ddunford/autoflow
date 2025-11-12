@@ -4,10 +4,16 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+description.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
-autoflow-data = { path = "../autoflow-data" }
-autoflow-utils = { path = "../autoflow-utils" }
+autoflow-data = { version = "0.1.4", path = "../autoflow-data" }
+autoflow-utils = { version = "0.1.4", path = "../autoflow-utils" }
 tokio = { workspace = true, features = ["fs"] }
 tracing = { workspace = true }
 anyhow = { workspace = true }

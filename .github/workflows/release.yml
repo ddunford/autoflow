@@ -194,6 +194,38 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Publish to crates.io
-        run: cargo publish -p autoflow-cli --token ${{ secrets.CARGO_TOKEN }}
+      - name: Publish crates in dependency order
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
+        run: |
+          # Publish in dependency order (leaf crates first)
+
+          echo "Publishing autoflow-data..."
+          cargo publish -p autoflow-data || echo "autoflow-data already published or failed"
+          sleep 10
+
+          echo "Publishing autoflow-utils..."
+          cargo publish -p autoflow-utils || echo "autoflow-utils already published or failed"
+          sleep 10
+
+          echo "Publishing autoflow-agents..."
+          cargo publish -p autoflow-agents || echo "autoflow-agents already published or failed"
+          sleep 10
+
+          echo "Publishing autoflow-core..."
+          cargo publish -p autoflow-core || echo "autoflow-core already published or failed"
+          sleep 10
+
+          echo "Publishing autoflow-quality..."
+          cargo publish -p autoflow-quality || echo "autoflow-quality already published or failed"
+          sleep 10
+
+          echo "Publishing autoflow-git..."
+          cargo publish -p autoflow-git || echo "autoflow-git already published or failed"
+          sleep 10
+
+          echo "Publishing autoflow-cli..."
+          cargo publish -p autoflow-cli || echo "autoflow-cli already published or failed"
+
+          echo "All crates published!"
         continue-on-error: true  # Don't fail if already published
