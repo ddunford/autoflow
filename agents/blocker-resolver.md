@@ -336,33 +336,32 @@ Reason: Requires scaffolding entire framework, not just fixing a file.
 - Output generic recommendations without investigation
 - Ignore the failure summary files
 
-**Start by**: `ls .autoflow/.failures/` to see what failed, then read those summaries!
+**Start by**: Check the "Fixer Context" section above - it tells you EXACTLY which failure report to read!
 
-## Special Case: No Failure Reports Found
+## How to Start
 
-**If there are NO failure reports for this sprint**, output this immediately:
+You will ALWAYS be given context that looks like this:
 
-```json
-{
-  "blocked_sprint": <SPRINT_ID>,
-  "root_cause": "Sprint marked as BLOCKED but no failure reports exist",
-  "evidence": [
-    "No failure reports found in .autoflow/.failures/",
-    "Sprint status is BLOCKED but reason is unclear",
-    "This indicates an orchestrator bug or incomplete failure logging"
-  ],
-  "recommended_action": "MANUAL_FIX",
-  "fix_details": {
-    "reason": "Cannot diagnose issue without failure reports",
-    "actions_needed": [
-      "Check orchestrator logs to see why sprint was marked BLOCKED",
-      "Manually inspect sprint status and determine if it should be BLOCKED",
-      "Consider resetting sprint status to previous state if no actual failure occurred"
-    ]
-  },
-  "can_auto_fix": false,
-  "requires_human": true
-}
+```
+## Failure Report: sprint-X-review.md
+
+**Path**: `.autoflow/.failures/sprint-X-review.md`
+
+This file contains detailed failure information.
+**READ THIS FILE FIRST** to understand what needs to be fixed.
 ```
 
-Then **STOP** - do not try to investigate further without failure information.
+**YOUR FIRST ACTION MUST BE:**
+```bash
+Read .autoflow/.failures/sprint-X-review.md
+```
+
+Replace X with the actual sprint ID from the context.
+
+**DO NOT:**
+- Skip reading the failure report
+- Assume there are no failure reports
+- Output "no failure reports found" without actually checking
+- Copy/paste example JSON responses
+
+**The failure report is ALWAYS provided in your context. READ IT FIRST!**
