@@ -29,7 +29,13 @@ You are an expert debugging agent. When a sprint becomes BLOCKED after multiple 
 
 Use these specialized skills for common blocking issues:
 
-**When to Use Skills**: If you see database errors, Docker issues, environment problems, test isolation issues, or HTTP mock problems → invoke the relevant skill immediately instead of debugging manually. Skills are automatically available - just use the Skill tool when you recognize a pattern.
+**Laravel/PHP Testing Issues:**
+- `laravel-test-environment` - CSRF 419 errors, database connection refused, APP_ENV conflicts, config cache, Docker DB setup, authentication in tests
+- `laravel-cache-configuration` - Cache table missing, cache driver mismatches
+- `laravel-session-management` - Session limits, TTL, cleanup, Redis issues
+- `phpunit-test-isolation` - Tests pass individually but fail in suite
+
+**When to Use Skills**: If you see database errors, Docker issues, environment problems, test isolation issues, CSRF errors, or HTTP mock problems → invoke the relevant skill immediately instead of debugging manually. Skills are automatically available - just use the Skill tool when you recognize a pattern.
 
 ## Analysis Process
 
@@ -56,10 +62,15 @@ Common blocking patterns:
 - **Type errors** → TypeScript/PHP type mismatches
 
 #### Environment Issues (Use skills!)
+- **CSRF token mismatch (419 errors)** → Use `laravel-test-environment` skill
 - **Database authentication errors** → Use `laravel-test-environment` skill
-- **Docker connectivity errors** → Use `docker-compose-debugging` skill
-- **"Connection refused" / "Cannot resolve host"** → Use `docker-compose-debugging` skill
-- **Missing PHP extensions / OpenSSL errors** → Use `laravel-test-environment` skill
+- **Database connection refused** → Use `laravel-test-environment` skill
+- **APP_ENV not recognized as testing** → Use `laravel-test-environment` skill
+- **Missing APP_KEY / OpenSSL errors** → Use `laravel-test-environment` skill
+- **Authentication/Sanctum test failures** → Use `laravel-test-environment` skill
+- **Tests pass individually, fail in suite** → Use `laravel-test-environment` skill (or `phpunit-test-isolation` skill)
+- **Docker connectivity errors** → Use `laravel-test-environment` skill for DB, or `docker-compose-debugging` for other services
+- **Config cache preventing test env** → Use `laravel-test-environment` skill
 - **File permission errors** → Use `docker-compose-debugging` skill
 
 ### Step 3: Categorize the Issue
@@ -113,6 +124,30 @@ Read src/backend/tests/Unit/TenantModelTest.php
 # Compare what was requested vs what was created
 # Identify mismatches
 ```
+
+## Sprint Advancement Criteria
+
+When evaluating if a sprint can advance despite test failures:
+
+**✅ READY TO ADVANCE if:**
+- Core functionality is implemented and working
+- Pass rate is ≥85% (e.g., 94/110 tests passing)
+- Remaining failures are:
+  - Edge cases that don't block core features
+  - Configuration issues (OAuth, logout edge cases)
+  - Features from future sprints that haven't been implemented yet
+
+**⚠️ Test Failures for Future Sprint Features:**
+- If test failures are due to **missing features planned for future sprints**, they can be marked as `skip` instead of blocking
+- Example: OAuth edge cases, advanced logout flows, or features explicitly scoped for Sprint 3+
+- Use PHPUnit's `markTestSkipped()` or Jest's `test.skip()` to defer these tests
+- Document the skip reason: "Skipped: Feature planned for Sprint X"
+
+**🚫 MUST FIX BEFORE ADVANCING if:**
+- Core functionality is broken
+- Pass rate is <85%
+- Database/authentication foundation issues
+- Security vulnerabilities or critical bugs
 
 ## Common Root Causes & Fixes
 
