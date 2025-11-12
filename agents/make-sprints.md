@@ -16,7 +16,8 @@ Generate a complete `SPRINTS.yml` file based on the provided documentation with:
 3. Integration sprints
 4. Testing and polish sprints
 
-**CRITICAL**: Each task must reference the documentation section it implements using `doc_reference` field.
+**CRITICAL**: Each task must reference the documentation sections it implements using `docs` array field.
+This allows implementation agents to automatically receive the relevant documentation context.
 
 ## Sprint Structure
 
@@ -159,7 +160,12 @@ sprints:
       - title: "Task name"
         description: "What to do"
         type: IMPLEMENTATION
-        doc_reference: "BUILD_SPEC.md#Relevant Section"
+        docs:
+          - "BUILD_SPEC.md#RelevantSection"
+          - "ARCHITECTURE.md#SystemDesign"
+          - "API_SPEC.md#Endpoints"
+          - "UI_SPEC.md#ComponentHierarchy"
+          - "TESTING_STRATEGY.md#UnitTests"
         acceptance_criteria:
           - "Criterion 1"
           - "Criterion 2"
@@ -227,8 +233,38 @@ Your SPRINTS.yml must:
 1. Investigation & Test Creation
 2. Implementation & Verification
 
+## Available Documentation
+
+The following documentation files will be provided in the context:
+- **BUILD_SPEC.md** - Tech stack, requirements, build configuration
+- **ARCHITECTURE.md** - System design, component relationships, patterns
+- **API_SPEC.md** - Backend endpoints, data models, authentication
+- **UI_SPEC.md** - Frontend pages, components, design system, state management
+- **TESTING_STRATEGY.md** - Test frameworks, coverage requirements, testing patterns
+- **INTEGRATION_GUIDE.md** - (For existing codebases) Integration points and patterns
+
+## Documentation Reference Format
+
+When adding documentation references to tasks, use this format in the `docs` array:
+```yaml
+docs:
+  - "BUILD_SPEC.md#TechStack"           # Tech stack section
+  - "ARCHITECTURE.md#DatabaseSchema"    # Database design
+  - "API_SPEC.md#UserEndpoints"         # API endpoints for users
+  - "UI_SPEC.md#LoginPage"              # Login page specification
+  - "UI_SPEC.md#ComponentHierarchy"     # Component structure
+  - "TESTING_STRATEGY.md#UnitTests"     # Unit testing approach
+```
+
+**Important**:
+- Use `#SectionName` format (no spaces in section names)
+- Reference multiple sections if a task touches multiple areas
+- Frontend tasks should reference UI_SPEC.md sections
+- Test tasks should reference TESTING_STRATEGY.md sections
+- API tasks should reference API_SPEC.md sections
+
 ## Start Now
 
-Read the provided context (BUILD_SPEC.md, ARCHITECTURE.md, IDEA.md, or INTEGRATION_GUIDE.md), then output the complete SPRINTS.yml.
+Read the provided documentation (BUILD_SPEC.md, ARCHITECTURE.md, API_SPEC.md, UI_SPEC.md, TESTING_STRATEGY.md), then output the complete SPRINTS.yml.
 
 **Remember**: Output ONLY the YAML content, no markdown fences, no explanations.
