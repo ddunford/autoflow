@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 
 mod commands;
+mod embedded;
 mod sync;
 
 #[derive(Parser)]
@@ -274,7 +275,19 @@ async fn main() -> anyhow::Result<()> {
         .with_target(false)
         .init();
 
-    // Auto-sync agents and skills to ~/.claude/
+    // Extract embedded assets if needed (first run or missing assets)
+    if embedded::needs_extraction() {
+        if cli.verbose {
+            eprintln!("Extracting embedded assets (first run)...");
+        }
+        if let Err(e) = embedded::extract_embedded_assets() {
+            if cli.verbose {
+                eprintln!("Warning: Failed to extract embedded assets: {}", e);
+            }
+        }
+    }
+
+    // Auto-sync agents and skills to ~/.claude/ (if running from git repo)
     if let Err(e) = sync::sync_agents_and_skills().await {
         if cli.verbose {
             eprintln!("Warning: Failed to sync agents/skills: {}", e);
