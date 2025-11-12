@@ -132,4 +132,28 @@ Create in `.autoflow/docs/`:
 - `UI_SPEC.md` (1500-2000 lines - includes state management)
 - `TESTING_STRATEGY.md` (800-1200 lines)
 
-Start now - read existing docs, then generate UI and testing specifications.
+## CRITICAL: Incremental Writing Strategy
+
+**Problem**: Generating 3000+ lines in one response hits the 32K output token limit.
+
+**Solution**: Write files incrementally using multiple Write tool calls:
+
+1. **Start with UI_SPEC.md structure**:
+   - Write initial skeleton with headers
+   - Add User Flows section
+   - Add Pages/Views section (write incrementally, 3-5 pages per Write call)
+   - Add Component Hierarchy
+   - Add Design System
+   - Add Responsive Design
+   - Add Accessibility
+   - Add State Management
+
+2. **Then write TESTING_STRATEGY.md**:
+   - Write full file in one shot (smaller, ~1000 lines)
+
+3. **Key technique**: Use Write tool multiple times to build up UI_SPEC.md section by section
+   - Read the file after each write to see current content
+   - Append or replace sections as you build it up
+   - This avoids hitting token limits
+
+Start now - read existing docs, then generate UI and testing specifications incrementally.
