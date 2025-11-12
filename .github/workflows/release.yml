@@ -132,10 +132,37 @@ jobs:
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
 
+      - name: Determine platform name
+        id: platform
+        run: |
+          case "${{ matrix.target }}" in
+            x86_64-unknown-linux-gnu)
+              echo "name=linux-x86_64" >> "$GITHUB_OUTPUT"
+              ;;
+            aarch64-unknown-linux-gnu)
+              echo "name=linux-aarch64" >> "$GITHUB_OUTPUT"
+              ;;
+            x86_64-apple-darwin)
+              echo "name=macos-x86_64" >> "$GITHUB_OUTPUT"
+              ;;
+            aarch64-apple-darwin)
+              echo "name=macos-aarch64" >> "$GITHUB_OUTPUT"
+              ;;
+            x86_64-pc-windows-msvc)
+              echo "name=windows-x86_64" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
       - name: Create release archive (Unix)
         if: matrix.archive == 'tar.gz'
         run: |
           mkdir -p release
+
+          # Copy standalone binary for auto-update
+          cp target/${{ matrix.target }}/release/autoflow autoflow-${{ steps.platform.outputs.name }}
+          chmod +x autoflow-${{ steps.platform.outputs.name }}
+
+          # Also create full tarball with agents/skills/templates
           cp target/${{ matrix.target }}/release/autoflow release/
           cp -r agents release/
           cp -r skills release/ 2>/dev/null || echo "No skills directory"
@@ -146,6 +173,9 @@ jobs:
           cd release
           tar czf ../autoflow-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz *
           cd ..
+
+          # Create checksums
+          shasum -a 256 autoflow-${{ steps.platform.outputs.name }} > autoflow-${{ steps.platform.outputs.name }}.sha256
           shasum -a 256 autoflow-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz > autoflow-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz.sha256
 
       - name: Create release archive (Windows)
@@ -163,6 +193,26 @@ jobs:
           Compress-Archive -Path release/* -DestinationPath autoflow-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip
           (Get-FileHash autoflow-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip -Algorithm SHA256).Hash | Out-File -Encoding ASCII autoflow-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.zip.sha256
 
+      - name: Upload standalone binary (for auto-update)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./autoflow-${{ steps.platform.outputs.name }}
+          asset_name: autoflow-${{ steps.platform.outputs.name }}
+          asset_content_type: application/octet-stream
+
+      - name: Upload standalone binary checksum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./autoflow-${{ steps.platform.outputs.name }}.sha256
+          asset_name: autoflow-${{ steps.platform.outputs.name }}.sha256
+          asset_content_type: text/plain
+
       - name: Upload release archive
         uses: actions/upload-release-asset@v1
         env:
@@ -173,7 +223,7 @@ jobs:
           asset_name: autoflow-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.${{ matrix.archive }}
           asset_content_type: application/octet-stream
 
-      - name: Upload checksum
+      - name: Upload archive checksum
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
