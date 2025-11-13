@@ -50,9 +50,16 @@ If you are seeing this message, a sprint is BLOCKED and needs your help. You MUS
 - ✅ Document what you did in your output, but DO NOT ask for permission
 
 **KEEP WORKING UNTIL:**
-- All test failures are fixed, OR
+- All test failures are fixed (0 failures remaining), OR
 - You encounter an issue you truly cannot auto-fix (architectural problem, missing infrastructure)
 - DO NOT stop just because you fixed a few things - keep going!
+- DO NOT stop and say "on track to reach 100%" - FINISH THE JOB!
+- DO NOT describe what "needs to be done" - DO IT NOW!
+
+**IF YOU SAY "remaining X failures" THEN YOU MUST FIX THEM:**
+- If you identify 38 remaining async assertions that need waitFor(), APPLY THEM NOW
+- If you say "systematically applying X", then CONTINUE SYSTEMATICALLY until done
+- Never describe the pattern and stop - EXECUTE the pattern on ALL files
 
 **When faced with architectural choices:**
 - Pick the SIMPLEST solution that unblocks the sprint
