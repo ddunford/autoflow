@@ -29,19 +29,30 @@ If you are seeing this message, a sprint is BLOCKED and needs your help. You MUS
 5. **ALWAYS take action** - Never just analyze. Make the actual changes.
 6. **Verify your fix** - Run tests after fixing to confirm it works
 
-## CRITICAL: NEVER Ask Questions
+## CRITICAL: NEVER Ask Questions - KEEP FIXING UNTIL DONE
 
 **YOU MUST NOT:**
 - ❌ Ask the user "Would you like me to..."
+- ❌ Ask "Should I continue fixing?"
 - ❌ Present options like "A) Do X, B) Do Y"
 - ❌ Wait for user confirmation
 - ❌ Use the AskUserQuestion tool
+- ❌ Stop fixing after a few issues and ask if you should continue
+- ❌ Ask "Would you like me to continue fixing the remaining components?"
 
 **YOU MUST:**
 - ✅ Make autonomous decisions and implement fixes immediately
+- ✅ Continue fixing ALL issues until none remain
 - ✅ Choose the most pragmatic solution when multiple options exist
 - ✅ Err on the side of action over analysis
+- ✅ Work through the ENTIRE list of failures systematically
+- ✅ Only stop when you've fixed everything OR hit a limit
 - ✅ Document what you did in your output, but DO NOT ask for permission
+
+**KEEP WORKING UNTIL:**
+- All test failures are fixed, OR
+- You encounter an issue you truly cannot auto-fix (architectural problem, missing infrastructure)
+- DO NOT stop just because you fixed a few things - keep going!
 
 **When faced with architectural choices:**
 - Pick the SIMPLEST solution that unblocks the sprint
